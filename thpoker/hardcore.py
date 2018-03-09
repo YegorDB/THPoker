@@ -6,7 +6,7 @@ def card(sign):
     return wght[sign[0]] + suit[sign[1]]
 
 
-def deck():
+def new_deck():
     return [card(w + s) for w in wght.keys() for s in suit.keys()]
 
 
