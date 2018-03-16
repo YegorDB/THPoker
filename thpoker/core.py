@@ -15,9 +15,9 @@
 
 import random
 
-from exceptions import CardWeightSymbolError, CardSuitSymbolError, CardEmptySymbolError, DeckCountTypeError, DeckCountNumberError, \
-    CardsStringTypeError, ComboCardsTypeError, ComboArgumentsError
-from validators import CardSymbolValidator
+from thpoker.exceptions import CardWeightSymbolError, CardSuitSymbolError, CardEmptySymbolError, DeckCountTypeError, \
+    DeckCountNumberError, CardsStringTypeError, ComboCardsTypeError, ComboArgumentsError
+from thpoker.validators import CardSymbolValidator
 
 
 class Card:

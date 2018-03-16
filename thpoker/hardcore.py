@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-wght = {'23456789TJQKA'[i]: (i + 2) * 10 for i in range(13)}
-suit = {'cdhs'[i]: (i + 1) for i in range(4)}
+all_weights = '23456789TJQKA'
+all_suits = 'cdhs'
+wght = {all_weights[i]: (i + 2) * 10 for i in range(13)}
+suit = {all_suits[i]: (i + 1) for i in range(4)}
 
 
 def card(sign):
@@ -22,7 +23,7 @@ def card(sign):
 
 
 def new_deck():
-    return [card(w + s) for w in wght.keys() for s in suit.keys()]
+    return [card(w + s) for w in all_weights for s in all_suits]
 
 
 def cards(cards_string, in_hand=0):

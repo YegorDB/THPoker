@@ -1,2 +1,2 @@
-# Texas Hold'em Poker tool for Python
+# Texas Hold'em Poker tool
 * Python 3.6

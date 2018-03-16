@@ -15,10 +15,10 @@
 
 import pytest
 
-from core import Card, Deck, Cards, Table, Hand, Combo
-from hardcore import card, cards, combo, ccombo, hcombo, chcombo
-from exceptions import CardWeightSymbolError, CardSuitSymbolError, CardEmptySymbolError, DeckCountTypeError, DeckCountNumberError, \
-    CardsStringTypeError
+from thpoker.core import Card, Deck, Cards, Table, Hand, Combo
+from thpoker.hardcore import card, cards, combo, ccombo, hcombo, chcombo
+from thpoker.exceptions import CardWeightSymbolError, CardSuitSymbolError, CardEmptySymbolError, \
+    DeckCountTypeError, DeckCountNumberError, CardsStringTypeError
 
 
 def get_parameters(func):
