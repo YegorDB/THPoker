@@ -58,12 +58,12 @@ print(
 card3 = Card('7h')
 card4 = Card('7c')
 print(
-    card1.weight != card2.weight,
-    card1.weight < card2.weight,
-    card1.weight > card2.weight,
-    card1.weight == card2.weight,
-    card1.suit != card2.suit,
-    card1.suit == card2.suit)
+    card3.weight != card4.weight,
+    card3.weight < card4.weight,
+    card3.weight > card4.weight,
+    card3.weight == card4.weight,
+    card3.suit != card4.suit,
+    card3.suit == card4.suit)
 # False False False True True False
 ```
 
