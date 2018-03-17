@@ -13,6 +13,8 @@
 # limitations under the License.
 
 
+# -*- coding: utf-8 -*-
+
 import random
 
 from thpoker.exceptions import CardWeightSymbolError, CardSuitSymbolError, CardEmptySymbolError, DeckCountTypeError, \
@@ -24,7 +26,7 @@ class Card:
     """
     Some card from standard 52 cards deck.
 
-    Takes one pisitional argument consisting of two symbols
+    Takes one positional argument consisting of two symbols
     1st symbol is card weight one of
         '1' (Ace), '2' (Two), '3' (Three), '4' (Four), '5' (Five), '6' (Six), '7' (Seven),
         '8' (Eight), '9' (Nine), 'T' (Ten), 'J' (Jack), 'Q' (Queen), 'K' (King), 'A' (Ace).
@@ -32,7 +34,7 @@ class Card:
         'c' (clubs), 'd' (diamonds), 'h' (hearts), 's' (spades).
     Five of spades looks like Card('5s').
 
-    But also possible create an abstract card (with one symbol).
+    Also possible create an abstract card (with one symbol).
     Abstract Five looks like Card('5').
     Abstract spades looks like Card('s').
 
@@ -105,6 +107,11 @@ class Card:
         """
 
         symbols = 'cdhs'
+        pretty_symbols = {
+            'c': '\u2663',
+            'd': '\u2666',
+            'h': '\u2665',
+            's': '\u2660'}
 
         @CardSymbolValidator(symbols, CardSuitSymbolError)
         def __init__(self, symbol):
@@ -112,7 +119,7 @@ class Card:
             self.name = self.names()[symbol]
 
         def __str__(self):
-            return self.symbol
+            return self.pretty_symbols[self.symbol]
 
         def __repr__(self):
             return self.symbol
