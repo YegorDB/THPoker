@@ -89,7 +89,7 @@ class TestCards:
     def test_cards_count(self):
         deck = Deck()
         cards = Cards()
-        cards.get_cards(deck, 3)
+        cards.pull(deck, 3)
         assert len(cards.items) == 3
 
 

@@ -217,6 +217,7 @@ class Cards:
     """
 
     def __init__(self, cards_string=None, max_cards_count=7):
+        self.max_cards_count = max_cards_count
         if cards_string:
             cards_string_type = type(cards_string)
             if not cards_string_type is str:
@@ -234,7 +235,8 @@ class Cards:
     def __contains__(self, item):
         return item in self.items
 
-    def get_cards(self, deck, count):
+    def pull(self, deck, count):
+        count = self.max_cards_count if count > self.max_cards_count else count
         self.items = list(deck.push_cards(count)) 
 
     def clean(self):
@@ -256,13 +258,13 @@ class Hand(Cards):
         self.is_pair = False
         super().__init__(cards_string=cards_string, max_cards_count=2)
         if self.items:
-            self.post_get_cards()
+            self.after_pull()
 
-    def get_cards(self, deck):
-        super().get_cards(deck=deck, count=2)
-        self.post_get_cards()
+    def pull(self, deck):
+        super().pull(deck=deck, count=2)
+        self.after_pull()
 
-    def post_get_cards(self):
+    def after_pull(self):
         for card in self.items:
             card.in_hand = True
         self.typing()
@@ -279,7 +281,7 @@ class Hand(Cards):
     def clean(self):
         super().clean()
         self.type = ''
-        self.pair = False
+        self.is_pair = False
 
 
 class Combo:

@@ -76,7 +76,7 @@ card1 = Card('8s')
 card2 = Card('K') # abstract king card
 card3 = Card('8') # abstract eight card
 print(card1 != card2, card1 < card2, card1 > card2, card1 == card2)
-# True False True False
+# True True False False
 print(card1 != card3, card1 < card3, card1 > card3, card1 == card3)
 # False False False True
 
@@ -128,6 +128,86 @@ print(len(deck.cards))
 ```
 
 ### Cards, Table, Hand
+
+A number of cards.
+
+Cards could be set from deck
+
+```python
+from thpoker.core import Deck, Cards
+
+cards = Cards()
+print(cards.items)
+# []
+
+deck = Deck()
+cards.pull(deck, 5) # pull 5 random cards
+print(cards.items)
+# [2♦, 7♣, J♦, 3♣, T♠]
+
+cards.clean() # it is not necessary because of pull overwrites items
+print(cards.items)
+# []
+```
+
+Also cards could be set by cards string
+
+```python
+from thpoker.core import Cards
+
+cards = Cards("2c/3c/4c/5c/6c")
+print(cards.items)
+# [2♣, 3♣, 4♣, 5♣, 6♣]
+```
+
+There is a possibility to find out whether the cards contain a card or not
+
+```python
+from thpoker.core import Card, Cards
+
+card1 = Card("Qd")
+card2 = Card("8s")
+cards = Cards("Ad/Kd/Qd/Jd/Td")
+
+print(card1 in cards, card2 in cards)
+# True False
+```
+
+Cards can contain no more than 7 items
+
+```python
+from thpoker.core import Deck, Cards
+
+cards1 = Cards()
+deck = Deck()
+cards1.pull(deck, 10)
+print(cards1.items)
+# [2♥, A♣, 7♣, T♠, 9♠, 6♦, 3♥]
+
+cards2 = Cards("2s/3s/4s/5s/6s/7s/8s/9s/Ts/Js/Qs/Ks/As")
+print(cards2.items)
+# [2♠, 3♠, 4♠, 5♠, 6♠, 7♠, 8♠]
+```
+
+Table is the same as the Cards, except that the Table can contain no more than 5 items
+
+Hand is the same as the Cards, except that the Hand can contain no more than 2 items and it has additional attributes (hand type and whether hand is a pair or not)
+
+```python
+from thpoker.core import Hand
+
+hand1 = Hand("Ad/Js")
+print(hand1.type, hand1.is_pair)
+# 'AJo' False
+
+hand2 = Hand("7c/Tc")
+print(hand2.type, hand2.is_pair)
+# 'T7s' False
+
+hand3 = Hand("2s/2h")
+print(hand3.type, hand3.is_pair)
+# '22' True
+```
 
 ### Combo
 
