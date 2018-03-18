@@ -5,15 +5,23 @@
 
 ## Usage
 
-### Card
+### Core
+
+*Core is the main project module wich contain base functional to work with Texas Hold'em Poker*
+
+#### Card(*args, **kwargs)
+
+> Keyword arguments are ignored.
+> Positional arguments are ignored since 2nd one.
+>Symbols in 1st positional argument are ignored since 3rd one.
 
 Some card from standard 52 cards deck.
 
 Takes one positional argument consisting of two symbols (1st symbol is card weight, 2nd symbol is card suit).
 
-All weight symbols: '2' (Two), '3' (Three), '4' (Four), '5' (Five), '6' (Six), '7' (Seven), '8' (Eight), '9' (Nine), 'T' (Ten), 'J' (Jack), 'Q' (Queen), 'K' (King), 'A' or '1' (Ace).
+Weight symbols: `'2'` (Two), `'3'` (Three), `'4'` (Four), `'5'` (Five), `'6'` (Six), `'7'` (Seven), `'8'` (Eight), `'9'` (Nine), `'T'` (Ten), `'J'` (Jack), `'Q'` (Queen), `'K'` (King), `'A'` or `'1'` (Ace).
 
-All suit symbols: 'c' (clubs), 'd' (diamonds), 'h' (hearts), 's' (spades).
+Suit symbols: `'c'` (clubs), `'d'` (diamonds), `'h'` (hearts), `'s'` (spades).
 
 ```python
 from thpoker.core import Card
@@ -89,7 +97,7 @@ print(card4 != card6, card4 == card6)
 # False True
 ```
 
-### Deck
+#### Deck()
 
 Standard 52 cards deck.
 
@@ -127,9 +135,9 @@ print(len(deck.cards))
 # 52
 ```
 
-### Cards, Table, Hand
+#### Cards(cards_string=None, max_count=7)
 
-A number of cards.
+Several cards.
 
 Cards could be set from deck
 
@@ -173,7 +181,7 @@ print(card1 in cards, card2 in cards)
 # True False
 ```
 
-Cards can contain no more than 7 items
+By default Cards can contain no more than 7 items
 
 ```python
 from thpoker.core import Deck, Cards
@@ -189,7 +197,15 @@ print(cards2.items)
 # [2♠, 3♠, 4♠, 5♠, 6♠, 7♠, 8♠]
 ```
 
+#### Table(cards_string=None)
+
+Several cards on the table
+
 Table is the same as the Cards, except that the Table can contain no more than 5 items
+
+#### Hand(cards_string=None)
+
+Several cards in "player's hand"
 
 Hand is the same as the Cards, except that the Hand can contain no more than 2 items and it has additional attributes (hand type and whether hand is a pair or not)
 
@@ -209,7 +225,11 @@ print(hand3.type, hand3.is_pair)
 # '22' True
 ```
 
-### Combo
+#### Combo(cards_string=None, cards=None, table=None, hand=None, nominal_check=False)
+
+Cards combination.
+
+There are 9 combinations: high card, one pair, two pairs, three of a kind, straight, flush, full house, four of a kind, straight flush.
 
 ## License
 [Apache License](https://choosealicense.com/licenses/apache-2.0/)

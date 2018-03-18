@@ -208,7 +208,7 @@ class Deck:
 
 class Cards:
     """
-    A number of cards.
+    Several cards.
 
     Cards could be set by cards string
     Cards set of (Three of diamonds, Ten of clubs and Ace of spades) looks like Cards('3d/Tc/As')
@@ -216,13 +216,13 @@ class Cards:
     Also cards could be set from deck after initialization
     """
 
-    def __init__(self, cards_string=None, max_cards_count=7):
-        self.max_cards_count = max_cards_count
+    def __init__(self, cards_string=None, max_count=7):
+        self.max_count = max_count
         if cards_string:
             cards_string_type = type(cards_string)
             if not cards_string_type is str:
                 raise CardsStringTypeError(cards_string_type)
-            self.items = [Card(sign) for sign in cards_string.split('/')[:max_cards_count]]
+            self.items = [Card(sign) for sign in cards_string.split('/')[:max_count]]
         else:
             self.items = []
 
@@ -236,7 +236,7 @@ class Cards:
         return item in self.items
 
     def pull(self, deck, count):
-        count = self.max_cards_count if count > self.max_cards_count else count
+        count = self.max_count if count > self.max_count else count
         self.items = list(deck.push_cards(count)) 
 
     def clean(self):
@@ -247,16 +247,16 @@ class Table(Cards):
     """Table cards."""
 
     def __init__(self, cards_string=None):
-        super().__init__(cards_string=cards_string, max_cards_count=5)
+        super().__init__(cards_string=cards_string, max_count=5)
 
 
 class Hand(Cards):
-    """Player's hands cards."""
+    """Player's hand cards."""
 
     def __init__(self, cards_string=None):
         self.type = ''
         self.is_pair = False
-        super().__init__(cards_string=cards_string, max_cards_count=2)
+        super().__init__(cards_string=cards_string, max_count=2)
         if self.items:
             self.after_pull()
 
