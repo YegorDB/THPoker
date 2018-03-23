@@ -205,7 +205,7 @@ Table is the same as the Cards, except that the Table can contain no more than 5
 
 #### Hand(cards_string=None)
 
-Several cards in "player's hand"
+Player's hand cards
 
 Hand is the same as the Cards, except that the Hand can contain no more than 2 items and it has additional attributes (hand type and whether hand is a pair or not)
 
@@ -229,7 +229,123 @@ print(hand3.type, hand3.is_pair)
 
 Cards combination.
 
-There are 9 combinations: high card, one pair, two pairs, three of a kind, straight, flush, full house, four of a kind, straight flush.
+There are 9 combinations: `Combo.HIGH_CARD`, `Combo.ONE_PAIR`, `Combo.TWO_PAIRS`, `Combo.THREE_OF_A_KIND`, `Combo.STRAIGHT`, `Combo.FLUSH`, `Combo.FULL_HOUSE`, `Combo.FOUR_OF_A_KIND`, `Combo.STRAIGHT_FLUSH`.
+
+Combo could be set by cards string
+
+```python
+from thpoker.core import Combo
+
+combo = Combo(cards_string="8h/9h/Th/Jh/Qh/Kh/Ah")
+print(combo)
+# straight flush (A♥, K♥, Q♥, J♥, T♥)
+print(combo.type == Combo.STRAIGHT_FLUSH)
+# True
+print(combo.name)
+# straight flush
+print(combo.cards)
+# [A♥, K♥, Q♥, J♥, T♥]
+```
+
+Also combo could be set by cards
+
+```python
+from thpoker.core import Cards, Combo
+
+cards = Cards("3d/8c/Kh/8s/3h/Js/8h")
+combo = Combo(cards=cards)
+print(combo)
+# full house (8♣, 8♠, 8♥, 3♦, 3♥)
+```
+
+Also combo could be set by table and hand
+
+```python
+from thpoker.core import Table, Hand, Combo
+
+table = Table("Ts/5c/Ac/Kd/5h")
+hand = Hand("Qh/5s")
+combo = Combo(table=table, hand=hand)
+print(combo)
+# three of a kind (5♣, 5♥, 5♠, A♣, K♦)
+```
+
+Сombo can be compared
+```python
+from thpoker.core import Combo
+
+combo1 = Combo(cards_string="8h/2c/Jd/Jh/5s/Kh/5c")
+print(combo1)
+# two pairs (J♦, J♥, 5♠, 5♣, K♠)
+combo2 = Combo(cards_string="9d/As/3c/9h/Qs/9s/9c")
+print(combo2)
+# four of a kind (9♦, 9♥, 9♠, 9♣, A♠)
+print(combo1 > combo2, combo1 < combo2, combo1 != combo2, combo1 == combo2)
+# False True True False
+
+combo3 = Combo(cards_string="Qd/6d/9d/Kd/2d/8c/7d")
+print(combo3)
+# flush (K♦, Q♦, 9♦, 7♦, 6♦)
+combo4 = Combo(cards_string="Qd/6d/9d/Kd/2d/6s/6h")
+print(combo4)
+# flush (K♦, Q♦, 9♦, 6♦, 2♦)
+print(combo3 > combo4, combo3 < combo4, combo3 != combo4, combo3 == combo4)
+# True False True False
+
+combo5 = Combo(cards_string="4s/3c/8d/Kd/8s/8h/3d")
+print(combo5)
+# full house (8♦, 8♠, 8♥, 3♣, 3♦)
+combo6 = Combo(cards_string="4s/3c/8d/Kd/8s/3s/8c")
+print(combo6)
+# full house (8♦, 8♠, 8♠, 3♣, 3♠)
+print(combo5 > combo6, combo5 < combo6, combo5 != combo6, combo5 == combo6)
+# False False False True
+```
+
+There is an opportunity to check whether combo base cards include hand cards or not
+
+```python
+from thpoker.core import Table, Hand, Combo
+
+table1 = Table("7d/Ts/4d/8c/6h")
+hand1 = Hand("Ad/9c")
+combo1 = Combo(table=table1, hand=hand1, nominal_check=True)
+print(combo1)
+# straight (T♠, 9♣, 8♣, 7♦, 6♥)
+print(combo1.is_real, combo1.is_nominal)
+# True False
+
+table2 = Table("8h/3c/8c/6d/5s")
+hand2 = Hand("Qc/Jc")
+combo2 = Combo(table=table2, hand=hand2, nominal_check=True)
+print(combo2)
+# one pair (8♥, 8♣, Q♣, J♣, 6♦)
+print(combo2.is_real, combo2.is_nominal)
+# False True
+# because of combo base cards here is (8♥, 8♣)
+```
+
+Full house and two pairs (which combo base cards consist of two parts) can be half nominal.
+
+```python
+from thpoker.core import Table, Hand, Combo
+
+table1 = Table("Th/6c/5h/Qh/5d")
+hand1 = Hand("Qd/Qs")
+combo1 = Combo(table=table1, hand=hand1, nominal_check=True)
+print(combo1)
+# straight (Q♥, Q♦, Q♠, 5♥, 5♦)
+print(combo1.is_half_nominal)
+# True
+
+table2 = Table("Kd/7s/Th/Ts/Jd")
+hand2 = Hand("2h/Kh")
+combo2 = Combo(table=table2, hand=hand2, nominal_check=True)
+print(combo2)
+# one pair (K♦, K♥, T♥, T♠, J♦)
+print(combo1.is_half_nominal)
+# True
+```
 
 ## License
 [Apache License](https://choosealicense.com/licenses/apache-2.0/)

@@ -142,7 +142,7 @@ class Card:
         if len(args[0][:2]) == 2:
             self.weight = self.Weight(args[0][0])
             self.suit = self.Suit(args[0][1])
-            self.name = self.weight.name + ' of ' + self.suit.name
+            self.name = f"{self.weight.name} of {self.suit.name}"
         # abstract card
         else:
             # with weight only
@@ -157,10 +157,10 @@ class Card:
                 self.name = self.suit.name
 
     def __str__(self):
-        return str(self.weight if self.weight else 'X') + str(self.suit if self.suit else 'x')
+        return f"{str(self.weight) if self.weight else 'X'}{str(self.suit) if self.suit else 'x'}"
 
     def __repr__(self):
-        return str(self.weight if self.weight else 'X') + str(self.suit if self.suit else 'x')
+        return f"{str(self.weight) if self.weight else 'X'}{str(self.suit) if self.suit else 'x'}"
 
     def __lt__(self, other):
         return self.weight < other.weight
@@ -544,7 +544,7 @@ class Combo:
         return self.TYPE_NAMES[self.type]
 
     def __str__(self):
-        return self.name + ' ' + str(self.cards)[1:-1]
+        return  f"{self.name} ({str(self.cards)[1:-1]})"
 
     def __repr__(self):
         return str([self.type] + self.cards.items)
