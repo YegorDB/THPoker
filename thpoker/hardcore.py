@@ -284,5 +284,5 @@ def find_ratio_combo(rcards):
     return value, kind
 
 
-def rhcombo(hcards):
-    return find_ratio_combo(hcards)
+def rhcombo(table, hand):
+    return find_ratio_combo(table + hand)

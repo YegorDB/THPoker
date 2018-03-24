@@ -1,3 +1,5 @@
 .cache
 .idea
+.pytest_cache
 __pycache__
+THPoker.egg-info
