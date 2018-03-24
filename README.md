@@ -367,7 +367,7 @@ HardCore card is a number.
 
 Weight numbers: `20` (Two), `30` (Three), `40` (Four), `50` (Five), `60` (Six), `70` (Seven), `80` (Eight), `90` (Nine), `100` (Ten), `110` (Jack), `120` (Queen), `130` (King), `140` or `10` (Ace).
 
-Suit symbols: `1` (clubs), `2` (diamonds), `3` (hearts), `4` (spades).
+Suit numbers: `1` (clubs), `2` (diamonds), `3` (hearts), `4` (spades).
 
 ```python
 from thpoker.hardcore import hcard
@@ -405,6 +405,57 @@ print(deck)
 # ]
 print(isinstance(deck, list))
 # True
+```
+
+#### hcards(cards_string, in_hand=0)
+
+Several cards.
+
+```python
+from thpoker.hardcore import hcards
+
+cards = hcards("7s/Td/3h/Kd/5c")
+print(cards)
+# [74, 102, 33, 132, 51]
+print(isinstance(cards, list))
+# True
+```
+
+Cards can be set as player's hand cards
+
+```python
+from thpoker.hardcore import hcards
+
+cards = hcards("Js/Qs", in_hand=1)
+print(cards)
+# [1114, 1124]
+# hand cards are more than usual cards in a thousand
+```
+
+#### hcombo(cards_string)
+
+Cards combination set by cards string
+
+There are 9 HardCore combinations: `1` (high card), `2` (one pair), `3` (two pairs), `4` (three of a kind), `5` (straight), `6` (flush), `7` (full house), `8` (four of a kind), `9` (straight flush).
+
+```python
+from thpoker.hardcore import hcombo
+
+combo1 = hcombo("Tc/9c/8c/7c/6c")
+print(combo1)
+# (9, 10)
+# 1st number mean that it is straight flush
+# 2nd number mean that high straight flush card is ten
+
+combo2 = hcombo("4d/Js/4s/8d/4h")
+print(combo2)
+# (4, 4, 11, 8)
+# 1st number mean that it is three of a kind
+# 2nd number mean that it is three of 'fours'
+# 3nd and 4th numbers mean additional cards (jack and eight)
+
+print(combo1 > combo2, combo1 < combo2, combo1 != combo2, combo1 == combo2)
+# True False True False
 ```
 
 ## License
