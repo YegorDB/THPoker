@@ -18,16 +18,16 @@ wght = {all_weights[i]: (i + 2) * 10 for i in range(13)}
 suit = {all_suits[i]: (i + 1) for i in range(4)}
 
 
-def card(sign):
+def hcard(sign):
     return wght[sign[0]] + suit[sign[1]]
 
 
-def new_deck():
-    return [card(w + s) for w in all_weights for s in all_suits]
+def hdeck():
+    return [hcard(w + s) for w in all_weights for s in all_suits]
 
 
-def cards(cards_string, in_hand=0):
-    return [1000 * in_hand + card(sign) for sign in cards_string.split('/')]
+def hcards(cards_string, in_hand=0):
+    return [1000 * in_hand + hcard(sign) for sign in cards_string.split('/')]
 
 
 def get_sf(weights, index):
@@ -161,11 +161,11 @@ def find_combo(cards, nedded_data=False):
     return value
 
 
-def combo(cards_string):
-    return find_combo(cards(cards_string))
+def hcombo(cards_string):
+    return find_combo(hcards(cards_string))
 
 
-def ccombo(cards):
+def chcombo(cards):
     return find_combo(cards)
 
 
@@ -284,9 +284,5 @@ def find_ratio_combo(rcards):
     return value, kind
 
 
-def hcombo(table_string, hand_string):
-    return find_ratio_combo(cards(table_string) + cards(hand_string, 1))
-
-
-def chcombo(hcards):
+def rhcombo(hcards):
     return find_ratio_combo(hcards)

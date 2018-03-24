@@ -16,8 +16,8 @@
 import pytest
 
 from thpoker.core import Card, Deck, Cards, Table, Hand, Combo
-from thpoker.hardcore import card, cards, combo, ccombo, hcombo, chcombo
-from thpoker.exceptions import CardWeightSymbolError, CardSuitSymbolError, CardEmptySymbolError, \
+from thpoker.hardcore import hcard, hcards, hcombo, chcombo, rhcombo
+from thpoker.exceptions import CardWeightSymbolError, CardSuitSymbolError, \
     DeckCountTypeError, DeckCountNumberError, CardsStringTypeError
 
 
@@ -37,8 +37,6 @@ class TestCard:
             Card("0")
         with pytest.raises(CardSuitSymbolError):
             Card("")
-        with pytest.raises(CardEmptySymbolError):
-            Card()
 
     def test_name(self):
         assert Card("Td").name == "Ten of diamonds"
@@ -324,10 +322,10 @@ class TestCombo:
 
 class TestHardCard:
     def test_create(self):
-        assert card('As') == 144
-        assert card('Jc') == 111
-        assert card('7h') == 73
-        assert card('2d') == 22
+        assert hcard('As') == 144
+        assert hcard('Jc') == 111
+        assert hcard('7h') == 73
+        assert hcard('2d') == 22
 
 
 class TestHardCombo:
@@ -414,19 +412,14 @@ class TestHardCombo:
     @pytest.mark.parametrize("values", combo_variants)
     @get_parameters
     def test_hard_cards_string_combo(self, cards_string, value):
-        assert combo(cards_string) == value
+        assert hcombo(cards_string) == value
 
     @pytest.mark.parametrize("values", combo_variants)
     @get_parameters
     def test_hard_cards_combo(self, cards_string, value):
-        assert ccombo(cards(cards_string)) == value
-
-    @pytest.mark.parametrize("values", with_hand_variants)
-    @get_parameters
-    def test_hard_hand_string_combo(self, table, hand, kind):
-        assert hcombo(table, hand)[1] == kind
+        assert chcombo(hcards(cards_string)) == value
 
     @pytest.mark.parametrize("values", with_hand_variants)
     @get_parameters
     def test_hard_hand_combo(self, table, hand, kind):
-        assert chcombo(cards(table) + cards(hand, 1))[1] == kind
+        assert rhcombo(hcards(table), hcards(hand, 1))[1] == kind

@@ -7,21 +7,19 @@
 
 ### Core
 
-*Core is the main project module wich contain base functional to work with Texas Hold'em Poker*
+*Core is the main project module that contains base functional to work with Texas Hold'em Poker*
 
-#### Card(*args, **kwargs)
-
-> Keyword arguments are ignored.
-> Positional arguments are ignored since 2nd one.
->Symbols in 1st positional argument are ignored since 3rd one.
+#### Card(sign)
 
 Some card from standard 52 cards deck.
 
-Takes one positional argument consisting of two symbols (1st symbol is card weight, 2nd symbol is card suit).
+Sign consisting of two symbols (1st symbol is card weight, 2nd symbol is card suit).
 
 Weight symbols: `'2'` (Two), `'3'` (Three), `'4'` (Four), `'5'` (Five), `'6'` (Six), `'7'` (Seven), `'8'` (Eight), `'9'` (Nine), `'T'` (Ten), `'J'` (Jack), `'Q'` (Queen), `'K'` (King), `'A'` or `'1'` (Ace).
 
 Suit symbols: `'c'` (clubs), `'d'` (diamonds), `'h'` (hearts), `'s'` (spades).
+
+> Sign symbols are ignored since 3rd one.
 
 ```python
 from thpoker.core import Card
@@ -325,7 +323,7 @@ print(combo2.is_real, combo2.is_nominal)
 # because of combo base cards here is (8♥, 8♣)
 ```
 
-Full house and two pairs (which combo base cards consist of two parts) can be half nominal.
+Full house and two pairs (which combo base cards consist of two parts) can be half nominal
 
 ```python
 from thpoker.core import Table, Hand, Combo
@@ -344,6 +342,68 @@ combo2 = Combo(table=table2, hand=hand2, nominal_check=True)
 print(combo2)
 # one pair (K♦, K♥, T♥, T♠, J♦)
 print(combo1.is_half_nominal)
+# True
+```
+
+### HardCore
+
+*HardCore is the project module that allows you to find a combination faster than Core module, but HardCore is not as friendly as Core is*
+
+#### hcard(sign)
+
+Some card from standard 52 cards deck.
+
+Sign is the same as `core.Card` sign.
+
+```python
+from thpoker.hardcore import hcard
+
+card = hcard("5s")
+print(card)
+# 54
+```
+
+HardCore card is a number.
+
+Weight numbers: `20` (Two), `30` (Three), `40` (Four), `50` (Five), `60` (Six), `70` (Seven), `80` (Eight), `90` (Nine), `100` (Ten), `110` (Jack), `120` (Queen), `130` (King), `140` or `10` (Ace).
+
+Suit symbols: `1` (clubs), `2` (diamonds), `3` (hearts), `4` (spades).
+
+```python
+from thpoker.hardcore import hcard
+
+card = hcard("Qd")
+print(isinstance(card, int))
+# True
+print(card == 122)
+# True
+```
+
+#### hdeck()
+
+Standard 52 cards deck.
+
+```python
+from thpoker.hardcore import hdeck
+
+deck = hdeck()
+print(deck)
+# [
+#      21,  22,  23,  24,
+#      31,  32,  33,  34,
+#      41,  42,  43,  44,
+#      51,  52,  53,  54,
+#      61,  62,  63,  64,
+#      71,  72,  73,  74,
+#      81,  82,  83,  84,
+#      91,  92,  93,  94,
+#     101, 102, 103, 104,
+#     111, 112, 113, 114,
+#     121, 122, 123, 124,
+#     131, 132, 133, 134,
+#     141, 142, 143, 144,
+# ]
+print(isinstance(deck, list))
 # True
 ```
 

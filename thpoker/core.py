@@ -17,7 +17,7 @@
 
 import random
 
-from thpoker.exceptions import CardWeightSymbolError, CardSuitSymbolError, CardEmptySymbolError, DeckCountTypeError, \
+from thpoker.exceptions import CardWeightSymbolError, CardSuitSymbolError, DeckCountTypeError, \
     DeckCountNumberError, CardsStringTypeError, ComboCardsTypeError, ComboArgumentsError
 from thpoker.validators import CardSymbolValidator
 
@@ -134,26 +134,23 @@ class Card:
         def names(cls):
             return dict(zip(cls.symbols, 'clubs/diamonds/hearts/spades'.split('/')))
 
-    def __init__(self, *args, **kwargs):
-        if len(args) == 0:
-            raise CardEmptySymbolError
-
+    def __init__(self, sign):
         # standard card with weight and suit
-        if len(args[0][:2]) == 2:
-            self.weight = self.Weight(args[0][0])
-            self.suit = self.Suit(args[0][1])
+        if len(sign[:2]) == 2:
+            self.weight = self.Weight(sign[0])
+            self.suit = self.Suit(sign[1])
             self.name = f"{self.weight.name} of {self.suit.name}"
         # abstract card
         else:
             # with weight only
             try:
-                self.weight = self.Weight(args[0])
+                self.weight = self.Weight(sign)
                 self.suit = None
                 self.name = self.weight.name
             # with suit only
             except CardWeightSymbolError:
                 self.weight = None
-                self.suit = self.Suit(args[0])
+                self.suit = self.Suit(sign)
                 self.name = self.suit.name
 
     def __str__(self):

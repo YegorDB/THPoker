@@ -29,11 +29,6 @@ class CardSuitSymbolError(Exception):
         super().__init__(hint)
 
 
-class CardEmptySymbolError(Exception):
-    def __init__(self):
-        super().__init__("Card weight or suit need to be specified.")
-
-
 class DeckCountTypeError(Exception):
     def __init__(self, count_type):
         super().__init__(f"Type of count cards to push need to be 'int' not '{count_type}'.")
