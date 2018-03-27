@@ -445,17 +445,78 @@ combo1 = hcombo("Tc/9c/8c/7c/6c")
 print(combo1)
 # (9, 10)
 # 1st number mean that it is straight flush
-# 2nd number mean that high straight flush card is ten
+# 2nd number mean that the highest straight flush card is "ten"
 
 combo2 = hcombo("4d/Js/4s/8d/4h")
 print(combo2)
 # (4, 4, 11, 8)
 # 1st number mean that it is three of a kind
-# 2nd number mean that it is three of 'fours'
-# 3nd and 4th numbers mean additional cards (jack and eight)
+# 2nd number mean that it is three of "fours"
+# 3nd and 4th numbers mean additional cards ("jack" and "eight")
 
 print(combo1 > combo2, combo1 < combo2, combo1 != combo2, combo1 == combo2)
 # True False True False
+```
+
+#### chcombo(cards)
+
+Cards combination set by cards
+
+```python
+from thpoker.hardcore import hcards, chcombo
+
+combo1 = chcombo(hcards("Qs/2h/9s/6s/Ad"))
+print(combo1)
+# (1, 14, 12, 9, 6, 2)
+# 1st number mean that it is high card
+# other numbers mean combination cards
+
+combo2 = chcombo(hcards("Jd/3d/7d/Kd/5d"))
+print(combo2)
+# (6, 13, 11, 7, 5, 3)
+# 1st number mean that it is flush
+# other numbers mean combination cards
+
+print(combo1 > combo2, combo1 < combo2, combo1 != combo2, combo1 == combo2)
+# False True True False
+```
+
+#### rhcombo(cards)
+
+Cards combination set by table and hand. Also shows combination ratio that mean whether combination is real or not
+
+```python
+from thpoker.hardcore import hcards, chcombo
+
+combo1, ratio1 = chcombo(table=hcards("7d/Js/3d/7c/7h"),  hand=hcards("7s/8s", in_hand=1))
+print(combo1)
+# (8, 7, 11)
+# 1st number mean that it is four of a kind
+# 2nd number mean that it is four of a "seven"
+# 3rd number mean that additional combo card is "jack"
+print(ratio1)
+# 2
+# mean that it is real combo
+
+combo2, ratio2 = chcombo(table=hcards("5h/Qc/8d/Ts/5d"),  hand=hcards("Tc/Kh", in_hand=1))
+print(combo2)
+# (3, 10, 5, 13)
+# 1st number mean that it is two pairs
+# 2nd number mean that 1st pair is pair of "ten"
+# 3rd number mean that 2nd pair is pair of "five"
+# 4th number mean that additional combination card is "king"
+print(ratio2)
+# 1
+# mean that it is half nominal combo
+
+combo3, ratio3 = chcombo(table=hcards("Ad/2s/3c/4c/5h"),  hand=hcards("As/Ac", in_hand=1))
+print(combo3)
+# (5, 5)
+# 1st number mean that it is straight
+# 2nd number mean that the highest straight card is "five"
+print(ratio3)
+# 0
+# mean that it is nominal combo
 ```
 
 ## License
