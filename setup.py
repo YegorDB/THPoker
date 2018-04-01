@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='THPoker',
-    version='1.0',
+    version='1.0.0',
     description="Texas Hold'em Poker tool",
     url='https://github.com/YegorDB/THPoker',
     author='Yegor Bitensky',
@@ -31,5 +31,6 @@ setup(
         "Programming Language :: Python :: 3.6",
     ],
     keywords='poker gambling cards',
-    packages=find_packages(exclude=['thpoker']),
+    packages=find_packages(exclude=['tests*']),
+    python_requires='==3.6',
 )
