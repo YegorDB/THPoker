@@ -1,6 +1,13 @@
 # Texas Hold'em Poker tool
 
-## Requirements
+## Install
+
+```
+pip install THPoker
+```
+
+### Requirements
+
 * Python 3.6
 
 ## Usage
