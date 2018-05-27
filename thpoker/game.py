@@ -42,6 +42,20 @@ class Player():
         self.combo = None
         self.hand = Hand()
 
+    def get_chips(self, chips):
+        self.chips += chips
+
+    def new_round(self):
+        self.round_bets = 0
+        self.hand.cleaning()
+
+    def new_stage(self):
+        self.stage_bets = 0
+        self.dif = 0
+
+    def get_dif(self, max_round_bets):
+        self.dif = max_round_bets - self.round_bets
+
     def betting(self, bet):
         self.chips -= bet
         self.round_bets += bet
@@ -84,3 +98,48 @@ class Player():
     def all_in(self, agressive=None):
         self.action = Action(Action.ALL_IN, self.chips, agressive)
         self.betting(self.chips)
+
+
+class Game():
+    class Players():
+        def __init__(self, chips, *players):
+            self.scroll = players
+            self.order = random.choice(([0, 1], [1, 0]))
+            self.curent_index = 0 # active player's index
+            for player in self:
+                player.get_chips(chips)
+
+        def __getitem__(self, key):
+            return self.scroll[self.order[key]]
+
+        def new_round(self):
+            for player in self:
+                player.new_round()
+
+        def new_stage(self):
+            for player in self:
+                player.new_stage()
+            self.curent_index = 0
+
+        @property
+        def current(self): # active player
+            return self[self.curent_index]
+
+        @property
+        def opponent(self): # active player's opponent
+            return self[abs(self.curent_index - 1)]
+
+        def next_player(self): # transition move rights
+            self.curent_index = abs(self.curent_index - 1)
+
+        def change_order(self):
+            self.order.reverse()
+
+        def get_dif(self):
+            max_round_bets = max([player.round_bets for player in self])
+            for player in self:
+                player.get_dif(max_round_bets)
+
+        @property
+        def bank(self):
+            return sum([player.round_bets for player in self])
