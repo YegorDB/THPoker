@@ -232,9 +232,16 @@ class Cards:
     def __contains__(self, item):
         return item in self.items
 
+    def _normal_count(self, count):
+        return self.max_count if count > self.max_count else count
+
     def pull(self, deck, count):
-        count = self.max_count if count > self.max_count else count
-        self.items = list(deck.push_cards(count)) 
+        self.items = list(deck.push_cards(self._normal_count(count)))
+
+    def pull_to(self, deck, count):
+        count_to_add = len(self.items) - self._normal_count(count)
+        if count_to_add > 0:
+            self.items += list(deck.push_cards(count_to_add))
 
     def clean(self):
         self.items = []

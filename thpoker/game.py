@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from thpoker.core import Hand
+from thpoker.core import Deck, Table, Hand
 
 
 class Action():
@@ -100,7 +100,9 @@ class Player():
         self.betting(self.chips)
 
 
+# two players game yet
 class Game():
+
     class Players():
         def __init__(self, chips, *players):
             self.scroll = players
@@ -143,3 +145,91 @@ class Game():
         @property
         def bank(self):
             return sum([player.round_bets for player in self])
+
+
+    class State():
+        ALL_IN = 'all-in'
+        THE_END = 'the_end'
+        FOLD = 'fold'
+        NORMAL = 'normal'
+        SHOW_DOWN = 'show_down'
+
+        def __init__(self):
+            self.refresh()
+
+        def refresh(self):
+            self.kind = self.NORMAL
+
+
+    class Stage():
+        PRE_FLOP = 'pre_flop'
+        FLOP = 'flop'
+        TURN = 'turn'
+        RIVER = 'river'
+        stage_list = [PRE_FLOP, FLOP, TURN, RIVER]
+
+        def __init__(self):
+            self.index = 0 # current stage index
+            self.depth = 0 # players moves count per stage
+
+        @property
+        def name(self):
+            return self.stage_list[self.index]
+
+        @property
+        def table_size(self):
+            return self.index + 2 if self.index else 0
+
+        def next(self):
+            self.index += 1
+            self.depth = 0
+
+        def depth_increase(self):
+            self.depth += 1
+
+
+    def __init__(self, settings, *players):
+        self.players = self.Players(settings["chips"], *players)
+        self.blindes = settings["blindes"]
+        self.state = self.State()
+        self.table = Table()
+        self.deck = Deck()
+        self.new_round()
+
+    def new_round(self):
+        self.players.new_round()
+        self.table.clean()
+        self.deck.refresh()
+        self.state.refresh()
+        self.stage = self.Stage()
+        self.new_stage()
+
+    def new_stage(self):
+        if self.stage.name == self.Stage.FLOP:
+            self.players.change_order()
+        self.distribution()
+        if self.state.kind != self.State.ALL_IN or /
+            self.stage.name == self.Stage.PRE_FLOP and /
+                self.players.current.chips and /
+                    self.players.current.stage_bets < self.players.opponent.chips:
+            self.action()
+        else:
+            if self.stage.name == self.Stage.RIVER:
+                self.show_down()
+            else:
+                self.stage_end()
+
+    def distribution(self):
+        if self.stage.name == self.Stage.PRE_FLOP:
+            self.get_blindes()
+            for player in self.players:
+                player.hand.pull(self.deck)
+        else:
+            self.table.pull_to(self.deck, self.stage.table_size)
+
+    def get_blindes(self):
+        for blind, index in zip(self.blindes, (0, 1)):
+            player = self.players[index]
+            player.blind_bet(blind)
+            if player.action.kind == Action.ALL_IN:
+                self.state.kind = self.State.ALL_IN
