@@ -16,34 +16,49 @@
 from thpoker.core import Deck, Table, Hand
 
 
-class Action():
-    ALL_IN = 'all-in'
-    BLIND_BET = 'blind_bet'
-    CALL = 'call'
-    CHECK = 'check'
-    FOLD = 'fold'
-    RAISE = 'raise'
-    HOLD = 'hold'
-
-    def __init__(self, kind, bet=0, agressive=None):
-        self.kind = kind
-        self.bet = bet
-        self.agressive = agressive
-
-
 class Player():
+
+    class Action():
+        ALL_IN = 'all-in'
+        BLIND_BET = 'blind_bet'
+        CALL = 'call'
+        CHECK = 'check'
+        FOLD = 'fold'
+        RAISE = 'raise'
+
+        OUTSIDE_AVAILABLE = (BLIND_BET, CALL, CHECK, FOLD, RAISE)
+        ALLWAYS_ACCEPTED = (BLIND_BET, FOLD)
+        WITH_BET = (BLIND_BET, RAISE)
+
+        def __init__(self, kind, bet=0):
+            self.kind = kind
+            self.bet = bet
+
+
     def __init__(self, identifier):
         self.identifier = identifier
         self.chips = 0
         self.round_bets = 0
         self.stage_bets = 0
         self.action = None
+        self.abilities = {
+            self.Action.RAISE: 0,
+            self.Action.CALL: 0,
+            self.Action.CHECK: False}
+        self.has_ability = {
+            self.Action.RAISE: lambda bet: self.abilities[self.Action.RAISE] >= bet,
+            self.Action.CALL: lambda: self.abilities[self.Action.CALL] > 0,
+            self.Action.CHECK: lambda: self.abilities[self.Action.CHECK]}
         self.dif = 0 # difference beetwen player's round bets and max bets of current round
         self.combo = None
         self.hand = Hand()
 
     def get_chips(self, chips):
         self.chips += chips
+
+    def get_combo(self, table):
+        self.combo = Combo(table=table, hand=self.hand)
+        return self.combo
 
     def new_round(self):
         self.round_bets = 0
@@ -52,56 +67,77 @@ class Player():
     def new_stage(self):
         self.stage_bets = 0
         self.dif = 0
+        self.action = None
+
+    def _get_abilities(self):
+        self.abilities[self.Action.RAISE] = self.chips if self.chips > self.dif else 0
+        if self.dif:
+            self.abilities[self.Action.CALL] = self.chips if self.dif >= self.chips else self.dif
+            self.abilities[self.Action.CHECK] = False
+        else:
+            self.abilities[self.Action.CALL] = 0
+            self.abilities[self.Action.CHECK] = True
 
     def get_dif(self, max_round_bets):
         self.dif = max_round_bets - self.round_bets
+        self._get_abilities()
 
-    def betting(self, bet):
+    def action(self, kind, bet):
+        if kind not in self.Action.OUTSIDE_AVAILABLE:
+            return {"success": False, "description": "Wrong move kind."}
+        args = [bet] if kind in self.Action.WITH_BET else []
+        if kind not in self.Action.ALLWAYS_ACCEPTED and not self.has_ability[kind](*args):
+            return {"success": False, "description": "Illegal move."}
+
+        getattr(self, f"_{kind}")(*args)
+        return {"success": True, "description": "Successfully moved."}
+
+    def _betting(self, bet):
         self.chips -= bet
         self.round_bets += bet
         self.stage_bets += bet
 
-    def raising(self, bet):
-        agressive = 1
+    def _raise(self, bet):
         if self.chips > bet:
-            self.action = Action(Action.RAISE, bet, agressive)
-            self.betting(bet)
+            self.action = self.Action(self.Action.RAISE, bet)
+            self._betting(bet)
         else:
-            self.all_in(agressive)
+            self._all_in()
 
-    def call_check(self):
-        agressive = 0.5
-        if self.dif: # there is greater round bets than player made
-            if self.chips > self.dif:
-                bet = self.dif
-                self.action = Action(Action.CALL, bet, agressive)
-                self.betting(bet)
-            else:
-                self.all_in(agressive)
+    def _call(self):
+        if self.chips > self.dif:
+            self.action = self.Action(self.Action.CALL, self.dif)
+            self._betting(self.dif)
         else:
-            self.action = Action(Action.CHECK, agressive=agressive)
+            self._all_in()
 
-    def blind_bet(self, blind):
-        if self.chips > blind:
-            bet = blind
-            self.action = Action(Action.BLIND_BET, bet)
-            self.betting(bet)
+    def _check(self):
+        self.action = self.Action(self.Action.CHECK)
+
+    def _blind_bet(self, bet):
+        if self.chips > bet:
+            self.action = self.Action(self.Action.BLIND_BET, bet)
+            self._betting(bet)
         else:
-            self.all_in()
+            self._all_in()
 
-    def fold(self):
-        self.action = Action(Action.FOLD, agressive=0)
+    def _fold(self):
+        self.action = self.Action(self.Action.FOLD)
 
-    def hold(self):
-        self.action = Action(Action.HOLD)
-
-    def all_in(self, agressive=None):
-        self.action = Action(Action.ALL_IN, self.chips, agressive)
-        self.betting(self.chips)
+    def _all_in(self):
+        self.action = self.Action(self.Action.ALL_IN, self.chips)
+        self._betting(self.chips)
 
 
 # two players game yet
 class Game():
+    # AGRESSIVE = {
+    #     Player.Action.RAISE: 1,
+    #     Player.Action.CALL: 0.5,
+    #     Player.Action.CHECK: 0.5,
+    #     Player.Action.FOLD: 0,
+    #     Player.Action.BLIND_BET: None,
+    # }
 
     class Players():
         def __init__(self, chips, *players):
@@ -142,9 +178,45 @@ class Game():
             for player in self:
                 player.get_dif(max_round_bets)
 
+        def get_cards(self, deck):
+            for player in self:
+                player.hand.pull(deck)
+
         @property
         def bank(self):
             return sum([player.round_bets for player in self])
+
+        def get_fold():
+            self.opponent.get_chips(self.bank)
+
+        def get_result(self, table):
+            winners = []
+            loosers = []
+            best_combo = None
+            for player in self:
+                combo = player.combo or player.get_combo(table)
+                if best_combo:
+                    if combo > best_combo:
+                        best_combo = combo
+                        loosers += winners
+                        winners = [player]
+                    elif combo == best_combo:
+                        winners.append(player)
+                    else:
+                        loosers.append(player)
+                else:
+                    best_combo = combo
+                    winners = [player]
+            winners_bets = sum((p.round_bets for p in winners))
+            all_bets = self.bank
+            for looser in loosers:
+                if looser.round_bets > winners_bets:
+                    over_bet = looser.round_bets - winners_bets
+                    all_bets -= over_bet
+                    looser.get_chips(over_bet)
+            gain_bets = all_bets - winners_bets
+            for winner in winners:
+                winner.get_chips(winner.round_bets + gain_bets / winner.round_bets)
 
 
     class State():
@@ -166,23 +238,27 @@ class Game():
         FLOP = 'flop'
         TURN = 'turn'
         RIVER = 'river'
-        stage_list = [PRE_FLOP, FLOP, TURN, RIVER]
+        ALL = (PRE_FLOP, FLOP, TURN, RIVER)
 
         def __init__(self):
+            self.started = False
             self.index = 0 # current stage index
             self.depth = 0 # players moves count per stage
 
         @property
         def name(self):
-            return self.stage_list[self.index]
+            return self.ALL[self.index]
 
         @property
         def table_size(self):
             return self.index + 2 if self.index else 0
 
         def next(self):
-            self.index += 1
-            self.depth = 0
+            if self.started:
+                self.index += 1
+                self.depth = 0
+            else:
+                self.started = True
 
         def depth_increase(self):
             self.depth += 1
@@ -194,42 +270,109 @@ class Game():
         self.state = self.State()
         self.table = Table()
         self.deck = Deck()
-        self.new_round()
 
     def new_round(self):
+        if self.state.name == self.State.THE_END:
+            return {"success": False, "description": "Game over."}
         self.players.new_round()
         self.table.clean()
         self.deck.refresh()
         self.state.refresh()
         self.stage = self.Stage()
-        self.new_stage()
+        return {"success": True, "description": "Redy to start new stage."}
 
     def new_stage(self):
+        if self.state.kind in (self.State.SHOW_DOWN, self.State.FOLD):
+            return {"success": False,
+                "description": "Round over.",
+                "the_end": False,
+                "round_end": True,
+                "stage_end": True}
+        self.stage.next()
+        self.players.new_stage()
         if self.stage.name == self.Stage.FLOP:
             self.players.change_order()
-        self.distribution()
-        if self.state.kind != self.State.ALL_IN or /
-            self.stage.name == self.Stage.PRE_FLOP and /
-                self.players.current.chips and /
+        self._distribution()
+        if self.state.kind != self.State.ALL_IN or \
+            self.stage.name == self.Stage.PRE_FLOP and \
+                self.players.current.chips and \
                     self.players.current.stage_bets < self.players.opponent.chips:
-            self.action()
-        else:
-            if self.stage.name == self.Stage.RIVER:
-                self.show_down()
-            else:
-                self.stage_end()
+            self.players.get_dif()
+            return {
+                "success": True,
+                "description": "Redy to accept action.",
+                "the_end": False,
+                "round_end": False,
+                "stage_end": False}
+        elif self.stage.name == self.Stage.RIVER:
+            return self._show_down()
+        return self._stage_end()
 
-    def distribution(self):
+    def _distribution(self):
         if self.stage.name == self.Stage.PRE_FLOP:
-            self.get_blindes()
-            for player in self.players:
-                player.hand.pull(self.deck)
+            self._get_blindes()
+            self.players.get_cards(self.deck)
         else:
             self.table.pull_to(self.deck, self.stage.table_size)
 
-    def get_blindes(self):
-        for blind, index in zip(self.blindes, (0, 1)):
+    def _get_blindes(self):
+        for bet, index in zip(self.blindes, (0, 1)):
             player = self.players[index]
-            player.blind_bet(blind)
-            if player.action.kind == Action.ALL_IN:
+            player.action(Player.Action.BLIND_BET, bet)
+            if player.action.kind == Player.Action.ALL_IN:
                 self.state.kind = self.State.ALL_IN
+
+    def action(self, kind, bet=0):
+        result = self.players.current.action(kind, bet)
+        if not result["success"]:
+            result.update({"the_end": False, "round_end": False, "stage_end": False})
+            return result
+
+        # agressive = self.AGRESSIVE[kind]
+
+        action_kind = self.players.current.action.kind
+        if action_kind == Player.Action.FOLD:
+            self.state.kind = self.State.FOLD
+            self.players.get_fold()
+            return self._stage_end()
+        else:
+            if action_kind == Player.Action.ALL_IN:
+                self.state.kind = self.State.ALL_IN
+            if self.players.opponent.chips and \
+                (action_kind == Player.Action.RAISE or \
+                    action_kind == Player.Action.ALL_IN and self.players.opponent.stage_bets < self.players.current.stage_bets or \
+                        action_kind in (Player.Action.CALL, Player.Action.CHECK) and not self.stage.depth):
+                self.players.next_player()
+                self.stage.depth_increase()
+                self.players.get_dif()
+                return {
+                    "success": True,
+                    "the_end": False,
+                    "round_end": False,
+                    "stage_end": False,
+                    "description": "Redy to accept action."}
+            elif self.stage.name == Stage.RIVER:
+                return self._show_down()
+            return self._stage_end()
+
+    def _show_down(self):
+        self.players.get_result(self.table)
+        self.state.kind = self.State.THE_END if self._the_end else self.State.SHOW_DOWN
+        return self._stage_end()
+
+    def _stage_end(self):
+        if self.stage.name == self.Stage.PRE_FLOP and self.state.kind == self.State.FOLD:
+            self.players.change_order()
+        return {
+            "success": True,
+            "the_end": self.state.kind == self.State.THE_END,
+            "round_end": self.state.kind in (self.State.SHOW_DOWN, self.State.FOLD, self.State.THE_END),
+            "stage_end": True,
+            "description": "Stage has been ended."}
+
+    @property
+    def _the_end(self):
+        for player in self.players:
+            if player.chips == 0:
+                return True
+        return False
