@@ -239,7 +239,7 @@ class Cards:
         self.items = list(deck.push_cards(self._normal_count(count)))
 
     def pull_to(self, deck, count):
-        count_to_add = len(self.items) - self._normal_count(count)
+        count_to_add = self._normal_count(count) - len(self.items)
         if count_to_add > 0:
             self.items += list(deck.push_cards(count_to_add))
 

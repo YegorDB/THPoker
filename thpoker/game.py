@@ -13,7 +13,9 @@
 # limitations under the License.
 
 
-from thpoker.core import Deck, Table, Hand
+import random
+
+from thpoker.core import Deck, Table, Hand, Combo
 
 
 class Player():
@@ -40,7 +42,7 @@ class Player():
         self.chips = 0
         self.round_bets = 0
         self.stage_bets = 0
-        self.action = None
+        self.last_action = None
         self.abilities = {
             self.Action.RAISE: 0,
             self.Action.CALL: 0,
@@ -62,12 +64,12 @@ class Player():
 
     def new_round(self):
         self.round_bets = 0
-        self.hand.cleaning()
+        self.hand.clean()
 
     def new_stage(self):
         self.stage_bets = 0
         self.dif = 0
-        self.action = None
+        self.last_action = None
 
     def _get_abilities(self):
         self.abilities[self.Action.RAISE] = self.chips if self.chips > self.dif else 0
@@ -99,33 +101,33 @@ class Player():
 
     def _raise(self, bet):
         if self.chips > bet:
-            self.action = self.Action(self.Action.RAISE, bet)
+            self.last_action = self.Action(self.Action.RAISE, bet)
             self._betting(bet)
         else:
             self._all_in()
 
     def _call(self):
         if self.chips > self.dif:
-            self.action = self.Action(self.Action.CALL, self.dif)
+            self.last_action = self.Action(self.Action.CALL, self.dif)
             self._betting(self.dif)
         else:
             self._all_in()
 
     def _check(self):
-        self.action = self.Action(self.Action.CHECK)
+        self.last_action = self.Action(self.Action.CHECK)
 
     def _blind_bet(self, bet):
         if self.chips > bet:
-            self.action = self.Action(self.Action.BLIND_BET, bet)
+            self.last_action = self.Action(self.Action.BLIND_BET, bet)
             self._betting(bet)
         else:
             self._all_in()
 
     def _fold(self):
-        self.action = self.Action(self.Action.FOLD)
+        self.last_action = self.Action(self.Action.FOLD)
 
     def _all_in(self):
-        self.action = self.Action(self.Action.ALL_IN, self.chips)
+        self.last_action = self.Action(self.Action.ALL_IN, self.chips)
         self._betting(self.chips)
 
 
@@ -186,7 +188,7 @@ class Game():
         def bank(self):
             return sum([player.round_bets for player in self])
 
-        def get_fold():
+        def get_fold(self):
             self.opponent.get_chips(self.bank)
 
         def get_result(self, table):
@@ -216,7 +218,7 @@ class Game():
                     looser.get_chips(over_bet)
             gain_bets = all_bets - winners_bets
             for winner in winners:
-                winner.get_chips(winner.round_bets + gain_bets / winner.round_bets)
+                winner.get_chips(winner.round_bets + int(gain_bets * winner.round_bets / winners_bets))
 
 
     class State():
@@ -272,7 +274,7 @@ class Game():
         self.deck = Deck()
 
     def new_round(self):
-        if self.state.name == self.State.THE_END:
+        if self.state.kind == self.State.THE_END:
             return {"success": False, "description": "Game over."}
         self.players.new_round()
         self.table.clean()
@@ -319,7 +321,7 @@ class Game():
         for bet, index in zip(self.blindes, (0, 1)):
             player = self.players[index]
             player.action(Player.Action.BLIND_BET, bet)
-            if player.action.kind == Player.Action.ALL_IN:
+            if player.last_action.kind == Player.Action.ALL_IN:
                 self.state.kind = self.State.ALL_IN
 
     def action(self, kind, bet=0):
@@ -330,7 +332,7 @@ class Game():
 
         # agressive = self.AGRESSIVE[kind]
 
-        action_kind = self.players.current.action.kind
+        action_kind = self.players.current.last_action.kind
         if action_kind == Player.Action.FOLD:
             self.state.kind = self.State.FOLD
             self.players.get_fold()
@@ -351,7 +353,7 @@ class Game():
                     "round_end": False,
                     "stage_end": False,
                     "description": "Redy to accept action."}
-            elif self.stage.name == Stage.RIVER:
+            elif self.stage.name == self.Stage.RIVER:
                 return self._show_down()
             return self._stage_end()
 
