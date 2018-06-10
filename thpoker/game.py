@@ -18,9 +18,20 @@ import random
 from thpoker.core import Deck, Table, Hand, Combo
 
 
-class Player():
+class Context:
+    def __init__(self, success, description, **data):
+        self.success = success
+        self.description = description
+        self.add_data(**data)
 
-    class Action():
+    def add_data(self, **data):
+        for attr, value in data.items():
+            setattr(self, attr, value)
+
+
+class Player:
+
+    class Action:
         ALL_IN = 'all-in'
         BLIND_BET = 'blind_bet'
         CALL = 'call'
@@ -86,13 +97,13 @@ class Player():
 
     def action(self, kind, bet):
         if kind not in self.Action.OUTSIDE_AVAILABLE:
-            return {"success": False, "description": "Wrong move kind."}
+            return Context(success=False, description="Wrong move kind.")
         args = [bet] if kind in self.Action.WITH_BET else []
         if kind not in self.Action.ALLWAYS_ACCEPTED and not self.has_ability[kind](*args):
-            return {"success": False, "description": "Illegal move."}
+            return Context(success=False, description="description": "Illegal move.")
 
         getattr(self, f"_{kind}")(*args)
-        return {"success": True, "description": "Successfully moved."}
+        return Context(success=True, description="description": "Successfully moved.")
 
     def _betting(self, bet):
         self.chips -= bet
@@ -132,7 +143,7 @@ class Player():
 
 
 # two players game yet
-class Game():
+class Game:
     # AGRESSIVE = {
     #     Player.Action.RAISE: 1,
     #     Player.Action.CALL: 0.5,
@@ -141,16 +152,25 @@ class Game():
     #     Player.Action.BLIND_BET: None,
     # }
 
-    class Players():
+    NORMAL = 'normal'
+    FOLD = 'fold'
+    ALL_IN = 'all-in'
+    SHOW_DOWN = 'show_down'
+    THE_END = 'the_end'
+    ACTION_NEEDED = 'action_needed'
+    STAGE_NEEDED = 'stage_needed'
+    ROUND_NEEDED = 'round_needed'
+
+    class Players:
         def __init__(self, chips, *players):
-            self.scroll = players
-            self.order = random.choice(([0, 1], [1, 0]))
-            self.curent_index = 0 # active player's index
+            self._scroll = players
+            self._order = random.choice(([0, 1], [1, 0]))
+            self._curent_index = 0 # active player's index
             for player in self:
                 player.get_chips(chips)
 
         def __getitem__(self, key):
-            return self.scroll[self.order[key]]
+            return self._scroll[self._order[key]]
 
         def new_round(self):
             for player in self:
@@ -159,21 +179,21 @@ class Game():
         def new_stage(self):
             for player in self:
                 player.new_stage()
-            self.curent_index = 0
+            self._curent_index = 0
 
         @property
         def current(self): # active player
-            return self[self.curent_index]
+            return self[self._curent_index]
 
         @property
         def opponent(self): # active player's opponent
-            return self[abs(self.curent_index - 1)]
+            return self[abs(self._curent_index - 1)]
 
         def next_player(self): # transition move rights
-            self.curent_index = abs(self.curent_index - 1)
+            self._curent_index = abs(self._curent_index - 1)
 
         def change_order(self):
-            self.order.reverse()
+            self._order.reverse()
 
         def get_dif(self):
             max_round_bets = max([player.round_bets for player in self])
@@ -186,7 +206,7 @@ class Game():
 
         @property
         def bank(self):
-            return sum([player.round_bets for player in self])
+            return sum((player.round_bets for player in self))
 
         def get_fold(self):
             self.opponent.get_chips(self.bank)
@@ -221,21 +241,7 @@ class Game():
                 winner.get_chips(winner.round_bets + int(gain_bets * winner.round_bets / winners_bets))
 
 
-    class State():
-        ALL_IN = 'all-in'
-        THE_END = 'the_end'
-        FOLD = 'fold'
-        NORMAL = 'normal'
-        SHOW_DOWN = 'show_down'
-
-        def __init__(self):
-            self.refresh()
-
-        def refresh(self):
-            self.kind = self.NORMAL
-
-
-    class Stage():
+    class Stage:
         PRE_FLOP = 'pre_flop'
         FLOP = 'flop'
         TURN = 'turn'
@@ -269,43 +275,41 @@ class Game():
     def __init__(self, settings, *players):
         self.players = self.Players(settings["chips"], *players)
         self.blindes = settings["blindes"]
-        self.state = self.State()
+        self.state = self.NORMAL
         self.table = Table()
         self.deck = Deck()
 
     def new_round(self):
-        if self.state.kind == self.State.THE_END:
-            return {"success": False, "description": "Game over."}
+        if self.state == self.THE_END:
+            return Context(success=False, description="Game over.", **self._get_context_data(self.THE_END))
         self.players.new_round()
         self.table.clean()
         self.deck.refresh()
-        self.state.refresh()
+        self.state = self.NORMAL
+        self.point = self.ROUND_NEEDED
         self.stage = self.Stage()
-        return {"success": True, "description": "Redy to start new stage."}
+        return Context(
+            success=True,
+            description="Redy to start new stage.",
+            **self._get_context_data(self.STAGE_NEEDED))
 
     def new_stage(self):
-        if self.state.kind in (self.State.SHOW_DOWN, self.State.FOLD):
-            return {"success": False,
-                "description": "Round over.",
-                "the_end": False,
-                "round_end": True,
-                "stage_end": True}
+        if self.state in (self.SHOW_DOWN, self.FOLD):
+            return Context(success=False, description="Round over.", **self._get_context_data(self.ROUND_NEEDED))
         self.stage.next()
         self.players.new_stage()
         if self.stage.name == self.Stage.FLOP:
             self.players.change_order()
         self._distribution()
-        if self.state.kind != self.State.ALL_IN or \
+        if self.state != self.ALL_IN or \
             self.stage.name == self.Stage.PRE_FLOP and \
                 self.players.current.chips and \
                     self.players.current.stage_bets < self.players.opponent.chips:
             self.players.get_dif()
-            return {
-                "success": True,
-                "description": "Redy to accept action.",
-                "the_end": False,
-                "round_end": False,
-                "stage_end": False}
+            return Context(
+                success=True,
+                description="Redy to accept action.",
+                **self._get_context_data(self.ACTION_NEEDED, True))
         elif self.stage.name == self.Stage.RIVER:
             return self._show_down()
         return self._stage_end()
@@ -322,24 +326,23 @@ class Game():
             player = self.players[index]
             player.action(Player.Action.BLIND_BET, bet)
             if player.last_action.kind == Player.Action.ALL_IN:
-                self.state.kind = self.State.ALL_IN
+                self.state = self.ALL_IN
 
     def action(self, kind, bet=0):
         result = self.players.current.action(kind, bet)
-        if not result["success"]:
-            result.update({"the_end": False, "round_end": False, "stage_end": False})
+        if not result.success:
             return result
 
         # agressive = self.AGRESSIVE[kind]
 
         action_kind = self.players.current.last_action.kind
         if action_kind == Player.Action.FOLD:
-            self.state.kind = self.State.FOLD
+            self.state = self.FOLD
             self.players.get_fold()
             return self._stage_end()
         else:
             if action_kind == Player.Action.ALL_IN:
-                self.state.kind = self.State.ALL_IN
+                self.state = self.ALL_IN
             if self.players.opponent.chips and \
                 (action_kind == Player.Action.RAISE or \
                     action_kind == Player.Action.ALL_IN and self.players.opponent.stage_bets < self.players.current.stage_bets or \
@@ -347,30 +350,35 @@ class Game():
                 self.players.next_player()
                 self.stage.depth_increase()
                 self.players.get_dif()
-                return {
-                    "success": True,
-                    "the_end": False,
-                    "round_end": False,
-                    "stage_end": False,
-                    "description": "Redy to accept action."}
+                return Context(
+                    success=True,
+                    description="Redy to accept action.",
+                    **self._get_context_data(self.ACTION_NEEDED, True))
             elif self.stage.name == self.Stage.RIVER:
                 return self._show_down()
             return self._stage_end()
 
     def _show_down(self):
         self.players.get_result(self.table)
-        self.state.kind = self.State.THE_END if self._the_end else self.State.SHOW_DOWN
+        self.state = self.THE_END if self._the_end else self.SHOW_DOWN
         return self._stage_end()
 
     def _stage_end(self):
-        if self.stage.name == self.Stage.PRE_FLOP and self.state.kind == self.State.FOLD:
+        if self.stage.name == self.Stage.PRE_FLOP and self.state == self.FOLD:
             self.players.change_order()
-        return {
-            "success": True,
-            "the_end": self.state.kind == self.State.THE_END,
-            "round_end": self.state.kind in (self.State.SHOW_DOWN, self.State.FOLD, self.State.THE_END),
-            "stage_end": True,
-            "description": "Stage has been ended."}
+        if self.state == self.THE_END:
+            point = self.THE_END
+            description = "Game has been ended."
+        elif self.state in (self.SHOW_DOWN, self.FOLD):
+            point = self.ROUND_NEEDED
+            description = "Round has been ended."
+        else:
+            point = self.STAGE_NEEDED
+            description = "Stage has been ended."
+        return Context(
+            success=True,
+            description=description,
+            **self._get_context_data(point, True))
 
     @property
     def _the_end(self):
@@ -378,3 +386,24 @@ class Game():
             if player.chips == 0:
                 return True
         return False
+
+    def _get_context_data(self, point, additional=False):
+        data = {"point": point}
+        if additional:
+            data.update({
+                "table" = self.table.items[:],
+                "state" = self.state,
+                "stage_name" = self.stage.name,
+                "current_identifier": self.players.current.identifier,
+                "players": [
+                    {
+                        "identifier": player.identifier,
+                        "chips": player.chips,
+                        "stage_bets": player.stage_bets,
+                        "dif": player.dif,
+                        "abilities": player.abilities,
+                        "cards": player.hand.items[:],
+                    }
+                    for player in self.players]
+            })
+        return data
