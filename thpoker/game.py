@@ -239,6 +239,10 @@ class Game:
             gain_bets = all_bets - winners_bets
             for winner in winners:
                 winner.get_chips(winner.round_bets + int(gain_bets * winner.round_bets / winners_bets))
+            return {
+                "winners": [p.identifier for p in winners],
+                "loosers": [p.identifier for p in loosers],
+            }
 
 
     class Stage:
@@ -278,6 +282,7 @@ class Game:
         self.state = self.NORMAL
         self.table = Table()
         self.deck = Deck()
+        self.result = None
 
     def new_round(self):
         if self.state == self.THE_END:
@@ -288,6 +293,7 @@ class Game:
         self.state = self.NORMAL
         self.point = self.ROUND_NEEDED
         self.stage = self.Stage()
+        self.result = None
         return Context(
             success=True,
             description="Redy to start new stage.",
@@ -359,7 +365,7 @@ class Game:
             return self._stage_end()
 
     def _show_down(self):
-        self.players.get_result(self.table)
+        self.result = self.players.get_result(self.table)
         self.state = self.THE_END if self._the_end else self.SHOW_DOWN
         return self._stage_end()
 
@@ -391,18 +397,23 @@ class Game:
         data = {"point": point}
         if additional:
             data.update({
-                "table" = self.table.items[:],
-                "state" = self.state,
-                "stage_name" = self.stage.name,
-                "current_identifier": self.players.current.identifier,
+                "table": self.table.items[:],
+                "state": self.state,
+                "stage_name": self.stage.name,
+                "stage_depth": self.stage.depth,
+                "bank": self.players.bank,
+                "result": self.result,
                 "players": [
                     {
                         "identifier": player.identifier,
+                        "current": player.identifier == self.players.current.identifier,
                         "chips": player.chips,
                         "stage_bets": player.stage_bets,
                         "dif": player.dif,
                         "abilities": player.abilities,
                         "cards": player.hand.items[:],
+                        "combo": player.combo,
+                        "last_action": player.last_action,
                     }
                     for player in self.players]
             })
