@@ -65,7 +65,7 @@ class GameGUI:
         self.pict.create_arc(25, 100, 225, 300, start=90, extent=180, fill='darkgreen', outline='darkgreen')
 
     def print_info(self, players_data, state, bank, result):
-        for player_data in players_data:
+        for player_data in players_data.values():
             if player_data["identifier"] == "Player":
                 self.pict.itemconfig(self.plr_chips, text=str(player_data["chips"]))
                 self.pict.itemconfig(self.plr_bet, text=str(player_data["stage_bets"]))
@@ -90,14 +90,15 @@ class GameGUI:
                 else:
                     self.pict.itemconfig(self.opp_combo, text='')
                     if player_data["last_action"]:
-                        self.pict.itemconfig(self.info, text='Opponent has ' + player_data["last_action"]) 
+                        self.pict.itemconfig(self.info, text=f'Opponent has {player_data["last_action"].kind}') 
         self.pict.itemconfig(self.bank_vsl, text=str(bank))
 
     def draw_card(self, card, x, y, dx, tag):
         suit = self.collor_suit[card.suit.symbol]
         self.pict.create_rectangle(x+dx*60, y, x+40+dx*60, y+50, fill=suit, outline=suit, tag=tag)
         weight = card.weight.symbol
-        self.pict.create_text(x+20+dx*60, y+50, text=weight, anchor='s', justify=tkinter.CENTER, font="Arial 32", tag=tag)
+        self.pict.create_text(x+18+dx*60, y+52, text=weight, anchor='s', justify=tkinter.CENTER, font="Arial 30", tag=tag)
+        self.pict.create_text(x+33+dx*60, y+18, text=card.suit.pretty_symbol, anchor='s', justify=tkinter.CENTER, font="Arial 16", tag=tag)
 
     def draw_tcard(self, table, stage_name):
         if stage_name == Game.Stage.FLOP:
@@ -120,11 +121,11 @@ class GameGUI:
         for n in range(2):
             self.pict.create_rectangle(150+n*60, 110+dy, 190+n*60, 160+dy, fill='white', outline='white', tag=tag)
             self.pict.create_rectangle(152+n*60, 112+dy, 188+n*60, 158+dy, fill='#0489B1', outline='#0489B1', tag=tag)
-        for i in range(0, 36, 6):
-            self.pict.create_line(i+152+n*60, 112+dy, 188+n*60, 148-i+dy, width=1, fill='black', tag=tag)
-            self.pict.create_line(152+n*60, i+122+dy, 188+n*60-i, 158+dy, width=1, fill='black', tag=tag)
-            self.pict.create_line(2+i+152+n*60, 112+dy, 2+i+152+n*60, 158+dy, width=1, fill='black', tag=tag)
-            self.pict.create_line(152+n*60, 117+dy, 188+n*60, 153+dy, width=1, fill='black', tag=tag)
+            for i in range(0, 36, 6):
+                self.pict.create_line(i+152+n*60, 112+dy, 188+n*60, 148-i+dy, width=1, fill='black', tag=tag)
+                self.pict.create_line(152+n*60, i+122+dy, 188+n*60-i, 158+dy, width=1, fill='black', tag=tag)
+                self.pict.create_line(2+i+152+n*60, 112+dy, 2+i+152+n*60, 158+dy, width=1, fill='black', tag=tag)
+                self.pict.create_line(152+n*60, 117+dy, 188+n*60, 153+dy, width=1, fill='black', tag=tag)
 
     def refresh_table(self):
         self.pict.delete('chand')
@@ -133,7 +134,7 @@ class GameGUI:
 
     def draw_fold(self):
         self.fold_but = tkinter.Button(
-            self.window, height=3, width=15, bd=0,
+            self.window, height=3, width=10, bd=0,
             bg='#F5A9A9', activebackground='black', command=self.fold_react,
             text='fold', fg='black', activeforeground='white')
         self.fold_but.place(anchor='n', x=75, y=343)
@@ -150,7 +151,7 @@ class GameGUI:
 
     def draw_callcheck(self, text, command):
         self.cll_chk_but = tkinter.Button(
-            self.window, height=3, width=15, bd=0,
+            self.window, height=3, width=10, bd=0,
             bg='#A9F5A9', activebackground='black', command=command,
             text=text, fg='black', activeforeground='white')
         self.cll_chk_but.place(anchor='n', x=200, y=343)
@@ -171,7 +172,7 @@ class GameGUI:
 
     def draw_raise(self, max_raise, dif):
         self.raise_but = tkinter.Button(
-            self.window, height=3, width=15, bd=0,
+            self.window, height=3, width=10, bd=0,
             bg='#F2F5A9', activebackground='black', command=self.raise_react,
             text='raise', fg='black', activeforeground='white')
         self.raise_but.place(anchor='n', x=325, y=343)
@@ -214,18 +215,19 @@ class GameGUI:
             else:
                 self.draw_callcheck('call', self.call_react)
             if abilities[Player.Action.RAISE]:
-                self.draw_raise(Player.Action.RAISE, dif)
+                self.draw_raise(abilities[Player.Action.RAISE], dif)
         else:
             self.draw_callcheck('ok', self._new_parts[point])
 
     def destroy_buttons(self):
-        self.cll_chk_but.destroy()
-        if hasattr(self, 'fold_but'):
+        try:
+            self.cll_chk_but.destroy()
             self.fold_but.destroy()
-        if hasattr(self, 'raise_but'):
             self.raise_but.destroy()
             self.raise_ent.destroy()
             self.pict.delete('raise_num')
+        except AttributeError:
+            pass
         self.pict.itemconfig(self.info, text='')
 
     def new_round(self):
@@ -233,9 +235,6 @@ class GameGUI:
         context = self._game.new_round()
         if context.success:
             self.refresh_table()
-
-            self.result = None
-            
             self.new_stage()
         else:
             print("ERROR", context.description)
@@ -243,8 +242,8 @@ class GameGUI:
     def pre_new_round(self, context):
         if context.state == Game.ALL_IN:
             self.draw_distr_cards(context)
-        self.print_info(context.players, context.state, context.bank)
-        self.draw_buttons(context.point)
+        self.print_info(context.players, context.state, context.bank, context.result)
+        self.draw_buttons(point=context.point)
         # self.show_table()
 
     def new_stage(self):
@@ -255,8 +254,8 @@ class GameGUI:
     def pre_new_stage(self, context):
         if context.state == Game.ALL_IN:
             self.draw_distr_cards(context)
-        self.print_info(context.players, context.state, context.bank)
-        self.draw_buttons(context.point)
+        self.print_info(context.players, context.state, context.bank, context.result)
+        self.draw_buttons(point=context.point)
         # self.show_table()
 
     def action(self, kind, bet=0):
@@ -265,17 +264,17 @@ class GameGUI:
 
     def draw_distr_cards(self, context):
         if context.stage_name == Game.Stage.PRE_FLOP:
-            for player_data in context.players:
+            for player_data in context.players.values():
                 self.draw_hand_cards(player_data)
         else:
             self.draw_tcard(context.table, context.stage_name)
 
     def pre_action(self, context):
-        if player_data["identifier"] == "Player":
+        if context.players["current"]["identifier"] == "Player":
             if context.stage_depth in (0, 1):
                 self.draw_distr_cards(context)
-            self.print_info(context.players, context.state, context.bank)
-            self.draw_buttons(player_data["abilities"])
+            self.print_info(context.players, context.state, context.bank, context.result)
+            self.draw_buttons(context.players["current"]["abilities"], context.players["current"]["dif"])
             # self.show_table()
         else:
             kind, bet = self.computer_action(context)
@@ -293,7 +292,7 @@ class GameGUI:
     def the_end(self, context):
         if context.state == Game.ALL_IN:
             self.draw_distr_cards(context)
-        self.print_info(context.players, context.state, context.bank)
+        self.print_info(context.players, context.state, context.bank, context.result)
         # self.show_table()
 
 #   def show_table(self):
@@ -330,3 +329,6 @@ class GameGUI:
 #           inf2 += str_card(self.table.cards)+'|'
 
 #       print ('-'*35, title1, opp, you, '-'*35, title2, inf2, '-'*21+'\n', sep='\n')
+
+if __name__ == "__main__":
+    GameGUI()

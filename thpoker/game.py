@@ -100,10 +100,10 @@ class Player:
             return Context(success=False, description="Wrong move kind.")
         args = [bet] if kind in self.Action.WITH_BET else []
         if kind not in self.Action.ALLWAYS_ACCEPTED and not self.has_ability[kind](*args):
-            return Context(success=False, description="description": "Illegal move.")
+            return Context(success=False, description="Illegal move.")
 
         getattr(self, f"_{kind}")(*args)
-        return Context(success=True, description="description": "Successfully moved.")
+        return Context(success=True, description="Successfully moved.")
 
     def _betting(self, bet):
         self.chips -= bet
@@ -403,18 +403,27 @@ class Game:
                 "stage_depth": self.stage.depth,
                 "bank": self.players.bank,
                 "result": self.result,
-                "players": [
-                    {
-                        "identifier": player.identifier,
-                        "current": player.identifier == self.players.current.identifier,
-                        "chips": player.chips,
-                        "stage_bets": player.stage_bets,
-                        "dif": player.dif,
-                        "abilities": player.abilities,
-                        "cards": player.hand.items[:],
-                        "combo": player.combo,
-                        "last_action": player.last_action,
-                    }
-                    for player in self.players]
+                "players": {
+                    "current": {
+                        "identifier": self.players.current.identifier,
+                        "chips": self.players.current.chips,
+                        "stage_bets": self.players.current.stage_bets,
+                        "dif": self.players.current.dif,
+                        "abilities": self.players.current.abilities,
+                        "cards": self.players.current.hand.items[:],
+                        "combo": self.players.current.combo,
+                        "last_action": self.players.current.last_action,
+                    },
+                    "opponent": {
+                        "identifier": self.players.opponent.identifier,
+                        "chips": self.players.opponent.chips,
+                        "stage_bets": self.players.opponent.stage_bets,
+                        "dif": self.players.opponent.dif,
+                        "abilities": self.players.opponent.abilities,
+                        "cards": self.players.opponent.hand.items[:],
+                        "combo": self.players.opponent.combo,
+                        "last_action": self.players.opponent.last_action,
+                    },
+                }
             })
         return data

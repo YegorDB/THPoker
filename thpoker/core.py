@@ -119,7 +119,7 @@ class Card:
             self.name = self.names()[symbol]
 
         def __str__(self):
-            return self.pretty_symbols[self.symbol]
+            return self.pretty_symbol
 
         def __repr__(self):
             return self.symbol
@@ -133,6 +133,10 @@ class Card:
         @classmethod
         def names(cls):
             return dict(zip(cls.symbols, 'clubs/diamonds/hearts/spades'.split('/')))
+
+        @property
+        def pretty_symbol(self):
+            return self.pretty_symbols[self.symbol]
 
     def __init__(self, sign):
         # standard card with weight and suit
