@@ -1,10 +1,81 @@
-import tkinter
+import tkinter, random
 
 from thpoker.game import Player, Game
+from thpoker.core import Table, Hand, Combo
 
 
-class GameGUI:
-    collor_suit = {
+hands_range = {
+    'AA': 1.0,'KK': 0.995475113122172,'QQ': 0.9909502262443439,'JJ': 0.9864253393665159,'TT': 0.9819004524886877,'99': 0.9773755656108597,
+    '88': 0.9728506787330317,'AKs': 0.9683257918552036,'AQs': 0.9653092006033183,'77': 0.9622926093514329,'AJs': 0.9577677224736049,
+    'AKo': 0.9547511312217195,'ATs': 0.9457013574660633,'AQo': 0.942684766214178,'AJo': 0.9336349924585219,'KQs': 0.9245852187028658,
+    '66': 0.9215686274509803,'A9s': 0.9170437405731523,'ATo': 0.9140271493212669,'KJs': 0.9049773755656109,'A8s': 0.9019607843137255,
+    'KTs': 0.8989441930618401,'KQo': 0.8959276018099548,'A7s': 0.8868778280542986,'A9o': 0.8838612368024132,'KJo': 0.8748114630467572,
+    '55': 0.8657616892911011,'QJs': 0.861236802413273,'K9s': 0.8582202111613876,'A6s': 0.8552036199095022,'A8o': 0.8521870286576169,
+    'A5s': 0.8431372549019608,'KTo': 0.8401206636500754,'QTs': 0.8310708898944194,'A4s': 0.8280542986425339,'A7o': 0.8250377073906485,
+    'K8s': 0.8159879336349924,'A3s': 0.8129713423831071,'QJo': 0.8099547511312217,'K9o': 0.8009049773755657,'A5o': 0.7918552036199095,
+    'A6o': 0.7828054298642534,'Q9s': 0.7737556561085973,'K7s': 0.770739064856712,'JTs': 0.7677224736048266,'A2s': 0.7647058823529411,
+    'QTo': 0.7616892911010558,'44': 0.7526395173453997,'A4o': 0.7481146304675717,'K6s': 0.7390648567119156,'Q8s': 0.7360482654600302,
+    'K8o': 0.7330316742081447,'A3o': 0.7239819004524887,'K5s': 0.7149321266968326,'J9s': 0.7119155354449472,'Q9o': 0.7088989441930619,
+    'JTo': 0.6998491704374057,'K7o': 0.6907993966817496,'K4s': 0.6817496229260935,'A2o': 0.6787330316742082,'Q7s': 0.669683257918552,
+    'K6o': 0.6666666666666666,'K3s': 0.6576168929110106,'J8s': 0.6546003016591252,'T9s': 0.6515837104072398,'33': 0.6485671191553545,
+    'Q6s': 0.6440422322775264,'Q8o': 0.6410256410256411,'K5o': 0.6319758672699849,'K2s': 0.6229260935143288,'J9o': 0.6199095022624435,
+    'Q5s': 0.6108597285067874,'J7s': 0.6078431372549019,'K4o': 0.6048265460030166,'T8s': 0.5957767722473605,'Q7o': 0.5927601809954751,
+    'Q4s': 0.583710407239819,'T9o': 0.5806938159879337,'J8o': 0.5716440422322775,'K3o': 0.5625942684766214,'Q6o': 0.5535444947209653,
+    'Q3s': 0.5444947209653092,'98s': 0.5414781297134238,'J6s': 0.5384615384615384,'T7s': 0.5354449472096531,'K2o': 0.5324283559577677,
+    '22': 0.5233785822021116,'Q5o': 0.5188536953242836,'Q2s': 0.5098039215686274,'J5s': 0.5067873303167421,'T8o': 0.5037707390648567,
+    'J7o': 0.4947209653092006,'Q4o': 0.4856711915535445,'97s': 0.4766214177978884,'J4s': 0.473604826546003,'T6s': 0.47058823529411764,
+    'Q3o': 0.4675716440422323,'J3s': 0.45852187028657615,'98o': 0.4555052790346908,'87s': 0.4464555052790347,'T7o': 0.4434389140271493,
+    'J6o': 0.4343891402714932,'96s': 0.4253393665158371,'J2s': 0.42232277526395173,'Q2o': 0.4193061840120664,'T5s': 0.41025641025641024,
+    'J5o': 0.4072398190045249,'T4s': 0.39819004524886875,'97o': 0.3951734539969834,'86s': 0.3861236802413273,'J4o': 0.38310708898944196,
+    'T6o': 0.3740573152337858,'95s': 0.3650075414781297,'T3s': 0.36199095022624433,'76s': 0.358974358974359,'J3o': 0.3559577677224736,
+    '87o': 0.3469079939668175,'T2s': 0.3378582202111614,'85s': 0.334841628959276,'96o': 0.33182503770739064,'J2o': 0.32277526395173456,
+    'T5o': 0.3137254901960784,'94s': 0.3046757164404223,'75s': 0.30165912518853694,'T4o': 0.2986425339366516,'86o': 0.2895927601809955,
+    '93s': 0.28054298642533937,'65s': 0.277526395173454,'84s': 0.27450980392156865,'95o': 0.27149321266968324,'T3o': 0.26244343891402716,
+    '92s': 0.25339366515837103,'76o': 0.25037707390648567,'74s': 0.24132730015082957,'T2o': 0.2383107088989442,'54s': 0.22926093514328807,
+    '64s': 0.22624434389140272,'85o': 0.22322775263951736,'83s': 0.21417797888386123,'94o': 0.21116138763197587,'75o': 0.20211161387631976,
+    '82s': 0.19306184012066366,'73s': 0.19004524886877827,'93o': 0.1870286576168929,'65o': 0.1779788838612368,'53s': 0.1689291101055807,
+    '63s': 0.16591251885369532,'84o': 0.16289592760180996,'92o': 0.15384615384615385,'43s': 0.14479638009049775,'74o': 0.14177978883861236,
+    '72s': 0.13273001508295626,'54o': 0.1297134238310709,'64o': 0.12066365007541478,'52s': 0.11161387631975868,'62s': 0.1085972850678733,
+    '83o': 0.10558069381598793,'82o': 0.09653092006033183,'42s': 0.08748114630467571,'73o': 0.08446455505279035,'53o': 0.07541478129713423,
+    '63o': 0.06636500754147813,'32s': 0.05731523378582202,'43o': 0.05429864253393665,'72o': 0.04524886877828054,'52o': 0.03619909502262444,
+    '62o': 0.027149321266968326,'42o': 0.01809954751131222,'32o': 0.00904977375565611,}
+
+
+class ShellPrint:
+    def _str_num(self, num):
+        number = str(num)
+        return f"{'_'*(4-len(number))}{number}"
+
+    def _str_card(self, cards):
+        return f"{str(cards)[1:-1]}"
+
+    def _shell_show(self, context):
+        title1 = '|idf|act|rais|bets|chps|hands|cmbo|'
+        for player_data in context.players.values():
+            inf = (player_data["last_action"].kind[:3] or '---',)
+            inf += (self._str_num(player_data["last_action"].bet) if player_data["last_action"].kind is Player.Action.RAISE else '----',)
+            inf += (self._str_num(player_data["stage_bets"]), self._str_num(player_data["chips"]),)
+            if player_data["identifier"] is 'Player' or context.state is Game.SHOW_DOWN:
+                inf += (self._str_card(player_data["cards"]),)
+            else:
+                inf += ('hide.',)
+            inf += (f'-{player_data["combo"].short_name if context.state is Game.SHOW_DOWN else --}-',)
+            if player_data["identifier"] is 'Player':
+                plr = f'|plr|{"|".join(inf)}'
+            else:
+                opp = f'|opp|{"|".join(inf)}'
+        title2 = '|bank|_____table____|'
+        inf2 = '|{self._str_num(context.bank)}|'
+        if not context.stage_name is Game.PRE_FLOP:
+            inf2 += '{self._str_card(self.table.cards)}|'
+        else:
+            inf2 += '--------------|'
+
+        print ('-'*35, title1, opp, plr, '-'*35, title2, inf2, '-'*21+'\n', sep='\n')
+
+
+class GameGUI(ShellPrint):
+    _collor_suit = {
         'c': '#A9D0F5',
         'd': '#F2F5A9',
         'h': '#F5A9A9',
@@ -14,62 +85,62 @@ class GameGUI:
     def __init__(self, chips=1000, blindes=[10, 20]):
         self._game = Game({"chips": chips, "blindes": blindes}, Player("Player"), Player("Computer"))
         self._reflections = {
-            Game.ACTION_NEEDED: self.pre_action,
-            Game.STAGE_NEEDED: self.pre_new_stage,
-            Game.ROUND_NEEDED: self.pre_new_round,
-            Game.THE_END: self.the_end,
+            Game.ACTION_NEEDED: self._pre_action,
+            Game.STAGE_NEEDED: self._pre_new_stage,
+            Game.ROUND_NEEDED: self._pre_new_round,
+            Game.THE_END: self._the_end,
         }
         self._new_parts = {
-            Game.STAGE_NEEDED: self.new_stage,
-            Game.ROUND_NEEDED: self.new_round,
+            Game.STAGE_NEEDED: self._new_stage,
+            Game.ROUND_NEEDED: self._new_round,
         }
-        self.get_window()
-        self.new_round()
-        self.window.mainloop()
+        self._get_window()
+        self._new_round()
+        self._window.mainloop()
 
-    def get_window(self):
-        self.window = tkinter.Tk()
-        self.window.resizable(False, False)
+    def _get_window(self):
+        self._window = tkinter.Tk()
+        self._window.resizable(False, False)
         # background
-        self.pict = tkinter.Canvas(self.window, width=500, height=400, bg='lightblue')
-        self.pict.pack()
+        self._pict = tkinter.Canvas(self._window, width=500, height=400, bg='lightblue')
+        self._pict.pack()
         for n in range(0, 500, 10):
-            self.pict.create_line(n, 0, 500, 500-n, width=1, fill='blue')
-            self.pict.create_line(0, n, 500-n, 500, width=1, fill='blue')
-            self.pict.create_line(500-n, 0, 0, 500-n, width=1, fill='blue')
-            self.pict.create_line(500, n, n, 500, width=1, fill='blue')
+            self._pict.create_line(n, 0, 500, 500-n, width=1, fill='blue')
+            self._pict.create_line(0, n, 500-n, 500, width=1, fill='blue')
+            self._pict.create_line(500-n, 0, 0, 500-n, width=1, fill='blue')
+            self._pict.create_line(500, n, n, 500, width=1, fill='blue')
         # information
-        self.pict.create_rectangle(15, 10, 385, 60, fill='#A9D0F5', outline='#A9D0F5')
-        self.pict.create_rectangle(400, 135, 510, 265, fill='#A9D0F5', outline='#A9D0F5')
+        self._pict.create_rectangle(15, 10, 385, 60, fill='#A9D0F5', outline='#A9D0F5')
+        self._pict.create_rectangle(400, 135, 510, 265, fill='#A9D0F5', outline='#A9D0F5')
         for n in (0, 1):
-            self.pict.create_rectangle(400, 80+n*195, 510, 125+n*195, fill='#A9D0F5', outline='#A9D0F5')
-            self.pict.create_line(403, 185+n*30, 500, 185+n*30, width=1, fill='gray')
-            self.pict.create_text(450, 100+n*195, text='Combination:', anchor='s')
-            self.pict.create_text(425, 160+n*100, text='Chips:', anchor='s')
-            self.pict.create_text(425, 180+n*60, text='Bet:', anchor='s')
-        self.pict.create_text(425, 210, text='Bank:', anchor='s')       
-        self.info = self.pict.create_text(200, 50, text='', anchor='s', font="Arial 24")
-        self.opp_combo = self.pict.create_text(450, 120, text='', anchor='s')
-        self.opp_chips = self.pict.create_text(475, 160, text='', anchor='s')
-        self.opp_bet = self.pict.create_text(475, 180, text='', anchor='s')
-        self.bank_vsl = self.pict.create_text(475, 210, text='', anchor='s')
-        self.plr_bet = self.pict.create_text(475, 240, text='', anchor='s')
-        self.plr_chips = self.pict.create_text(475, 260, text='', anchor='s')       
-        self.plr_combo = self.pict.create_text(450, 315, text='', anchor='s')
+            self._pict.create_rectangle(400, 80+n*195, 510, 125+n*195, fill='#A9D0F5', outline='#A9D0F5')
+            self._pict.create_line(403, 185+n*30, 500, 185+n*30, width=1, fill='gray')
+            self._pict.create_text(450, 100+n*195, text='Combination:', anchor='s')
+            self._pict.create_text(425, 160+n*100, text='Chips:', anchor='s')
+            self._pict.create_text(425, 180+n*60, text='Bet:', anchor='s')
+        self._pict.create_text(425, 210, text='Bank:', anchor='s')
+        self._info = self._pict.create_text(200, 50, text='', anchor='s', font="Arial 24")
+        self._opp_combo = self._pict.create_text(450, 120, text='', anchor='s')
+        self._opp_chips = self._pict.create_text(475, 160, text='', anchor='s')
+        self._opp_bet = self._pict.create_text(475, 180, text='', anchor='s')
+        self._bank_vsl = self._pict.create_text(475, 210, text='', anchor='s')
+        self._plr_bet = self._pict.create_text(475, 240, text='', anchor='s')
+        self._plr_chips = self._pict.create_text(475, 260, text='', anchor='s')
+        self._plr_combo = self._pict.create_text(450, 315, text='', anchor='s')
         # table
-        self.pict.create_rectangle(125, 90, 275, 310, fill='#B45F04', outline='#B45F04')
-        self.pict.create_arc(165, 90, 385, 310, start=270, extent=180, fill='#B45F04', outline='#B45F04')
-        self.pict.create_arc(15, 90, 235, 310, start=90, extent=180, fill='#B45F04', outline='#B45F04')
-        self.pict.create_rectangle(125, 100, 275, 300, fill='darkgreen', outline='darkgreen')
-        self.pict.create_arc(175, 100, 375, 300, start=270, extent=180, fill='darkgreen', outline='darkgreen')
-        self.pict.create_arc(25, 100, 225, 300, start=90, extent=180, fill='darkgreen', outline='darkgreen')
+        self._pict.create_rectangle(125, 90, 275, 310, fill='#B45F04', outline='#B45F04')
+        self._pict.create_arc(165, 90, 385, 310, start=270, extent=180, fill='#B45F04', outline='#B45F04')
+        self._pict.create_arc(15, 90, 235, 310, start=90, extent=180, fill='#B45F04', outline='#B45F04')
+        self._pict.create_rectangle(125, 100, 275, 300, fill='darkgreen', outline='darkgreen')
+        self._pict.create_arc(175, 100, 375, 300, start=270, extent=180, fill='darkgreen', outline='darkgreen')
+        self._pict.create_arc(25, 100, 225, 300, start=90, extent=180, fill='darkgreen', outline='darkgreen')
 
-    def print_info(self, players_data, state, bank, result):
+    def _print_info(self, players_data, state, bank, result):
         for player_data in players_data.values():
-            if player_data["identifier"] == "Player":
-                self.pict.itemconfig(self.plr_chips, text=str(player_data["chips"]))
-                self.pict.itemconfig(self.plr_bet, text=str(player_data["stage_bets"]))
-                if state == Game.SHOW_DOWN:
+            if player_data["identifier"] is "Player":
+                self._pict.itemconfig(self._plr_chips, text=str(player_data["chips"]))
+                self._pict.itemconfig(self._plr_bet, text=str(player_data["stage_bets"]))
+                if state is Game.SHOW_DOWN:
                     combo_name = str(player_data["combo"])
                     if len(result["winners"]) == 2:
                         result_name = "draw"
@@ -77,258 +148,266 @@ class GameGUI:
                         result_name = "win"
                     else:
                         result_name = "lose"
-                    self.pict.itemconfig(self.info, text=result_name)
+                    self._pict.itemconfig(self._info, text=result_name)
                 else:
                     combo_name = ""
-                self.pict.itemconfig(self.plr_combo, text=combo_name)
+                self._pict.itemconfig(self._plr_combo, text=combo_name)
             else:
-                self.pict.itemconfig(self.opp_chips, text=str(player_data["chips"]))
-                self.pict.itemconfig(self.opp_bet, text=str(player_data["stage_bets"]))
-                if state == Game.SHOW_DOWN:
-                    self.draw_hand_cards(player_data, distr=False)
-                    self.pict.itemconfig(self.opp_combo, text=str(player_data["combo"]))
+                self._pict.itemconfig(self._opp_chips, text=str(player_data["chips"]))
+                self._pict.itemconfig(self._opp_bet, text=str(player_data["stage_bets"]))
+                if state is Game.SHOW_DOWN:
+                    self._draw_hand_cards(player_data, distr=False)
+                    self._pict.itemconfig(self._opp_combo, text=str(player_data["combo"]))
                 else:
-                    self.pict.itemconfig(self.opp_combo, text='')
+                    self._pict.itemconfig(self._opp_combo, text='')
                     if player_data["last_action"]:
-                        self.pict.itemconfig(self.info, text=f'Opponent has {player_data["last_action"].kind}') 
-        self.pict.itemconfig(self.bank_vsl, text=str(bank))
+                        self._pict.itemconfig(self._info, text=f'Opponent has {player_data["last_action"].kind}') 
+        self._pict.itemconfig(self._bank_vsl, text=str(bank))
 
-    def draw_card(self, card, x, y, dx, tag):
-        suit = self.collor_suit[card.suit.symbol]
-        self.pict.create_rectangle(x+dx*60, y, x+40+dx*60, y+50, fill=suit, outline=suit, tag=tag)
+    def _draw_card(self, card, x, y, dx, tag):
+        suit = self._collor_suit[card.suit.symbol]
+        self._pict.create_rectangle(x+dx*60, y, x+40+dx*60, y+50, fill=suit, outline=suit, tag=tag)
         weight = card.weight.symbol
-        self.pict.create_text(x+18+dx*60, y+52, text=weight, anchor='s', justify=tkinter.CENTER, font="Arial 30", tag=tag)
-        self.pict.create_text(x+33+dx*60, y+18, text=card.suit.pretty_symbol, anchor='s', justify=tkinter.CENTER, font="Arial 16", tag=tag)
+        self._pict.create_text(x+18+dx*60, y+52, text=weight, anchor='s', justify=tkinter.CENTER, font="Arial 30", tag=tag)
+        self._pict.create_text(x+33+dx*60, y+18, text=card.suit.pretty_symbol, anchor='s', justify=tkinter.CENTER, font="Arial 16", tag=tag)
 
-    def draw_tcard(self, table, stage_name):
-        if stage_name == Game.Stage.FLOP:
+    def _draw_table_card(self, table, stage_name):
+        if stage_name is Game.Stage.FLOP:
             for n in range(3):
-                self.draw_card(table[n], 60, 175, n, 'table')
+                self._draw_card(table[n], 60, 175, n, 'table')
         else:
-            self.draw_card(table[-1], 60, 175, len(table)-1, 'table')
+            self._draw_card(table[-1], 60, 175, len(table)-1, 'table')
 
-    def draw_hand_cards(self, player_data, distr=True):
-        is_player = player_data["identifier"] == "Player"
+    def _draw_hand_cards(self, player_data, distr=True):
+        is_player = player_data["identifier"] is "Player"
         dy, tag = (130, 'phand') if is_player else (0, 'chand')
         if distr and not is_player:
-            self.draw_hide_cards(dy, tag)
+            self._draw_hide_cards(dy, tag)
         else:
             for n in range(2):
                 card = player_data["cards"][n]
-                self.draw_card(card, 150, 110+dy, n, tag)
+                self._draw_card(card, 150, 110+dy, n, tag)
 
-    def draw_hide_cards(self, dy, tag):
+    def _draw_hide_cards(self, dy, tag):
         for n in range(2):
-            self.pict.create_rectangle(150+n*60, 110+dy, 190+n*60, 160+dy, fill='white', outline='white', tag=tag)
-            self.pict.create_rectangle(152+n*60, 112+dy, 188+n*60, 158+dy, fill='#0489B1', outline='#0489B1', tag=tag)
+            self._pict.create_rectangle(150+n*60, 110+dy, 190+n*60, 160+dy, fill='white', outline='white', tag=tag)
+            self._pict.create_rectangle(152+n*60, 112+dy, 188+n*60, 158+dy, fill='#0489B1', outline='#0489B1', tag=tag)
             for i in range(0, 36, 6):
-                self.pict.create_line(i+152+n*60, 112+dy, 188+n*60, 148-i+dy, width=1, fill='black', tag=tag)
-                self.pict.create_line(152+n*60, i+122+dy, 188+n*60-i, 158+dy, width=1, fill='black', tag=tag)
-                self.pict.create_line(2+i+152+n*60, 112+dy, 2+i+152+n*60, 158+dy, width=1, fill='black', tag=tag)
-                self.pict.create_line(152+n*60, 117+dy, 188+n*60, 153+dy, width=1, fill='black', tag=tag)
+                self._pict.create_line(i+152+n*60, 112+dy, 188+n*60, 148-i+dy, width=1, fill='black', tag=tag)
+                self._pict.create_line(152+n*60, i+122+dy, 188+n*60-i, 158+dy, width=1, fill='black', tag=tag)
+                self._pict.create_line(2+i+152+n*60, 112+dy, 2+i+152+n*60, 158+dy, width=1, fill='black', tag=tag)
+                self._pict.create_line(152+n*60, 117+dy, 188+n*60, 153+dy, width=1, fill='black', tag=tag)
 
-    def refresh_table(self):
-        self.pict.delete('chand')
-        self.pict.delete('table')
-        self.pict.delete('phand')
+    def _refresh_table(self):
+        self._pict.delete('chand')
+        self._pict.delete('table')
+        self._pict.delete('phand')
 
-    def draw_fold(self):
+    def _draw_fold(self):
         self.fold_but = tkinter.Button(
-            self.window, height=3, width=10, bd=0,
-            bg='#F5A9A9', activebackground='black', command=self.fold_react,
+            self._window, height=3, width=10, bd=0,
+            bg='#F5A9A9', activebackground='black', command=self._fold_react,
             text='fold', fg='black', activeforeground='white')
         self.fold_but.place(anchor='n', x=75, y=343)
-        # def fold_collor1(event):
-        #     self.fold_but['bg'] = '#FA5858'
-        # self.fold_but.bind('<Enter>', fold_collor1)
-        # def fold_collor2(event):
-        #     self.fold_but['bg'] = '#F5A9A9'
-        # self.fold_but.bind('<Leave>', fold_collor2)
+        self.fold_but.bind('<Enter>', self._change_fold_collor)
+        self.fold_but.bind('<Leave>', self._change_fold_collor)
+    
+    def _change_fold_collor(self, event):
+        self.fold_but['bg'] = '#FA5858' if event.type == '7' else '#F5A9A9'
 
-    def fold_react(self):
-        self.destroy_buttons()
-        self.action(Player.Action.FOLD)
+    def _fold_react(self):
+        self._destroy_buttons()
+        self._action(Player.Action.FOLD)
 
-    def draw_callcheck(self, text, command):
+    def _draw_callcheck(self, text, command):
         self.cll_chk_but = tkinter.Button(
-            self.window, height=3, width=10, bd=0,
+            self._window, height=3, width=10, bd=0,
             bg='#A9F5A9', activebackground='black', command=command,
             text=text, fg='black', activeforeground='white')
         self.cll_chk_but.place(anchor='n', x=200, y=343)
-        # def check_call_collor1(event):
-        #     self.cll_chk_but['bg'] = '#58FA58'
-        # self.cll_chk_but.bind('<Enter>', check_call_collor1)
-        # def check_call_collor2(event):
-        #     self.cll_chk_but['bg'] = '#A9F5A9'
-        # self.cll_chk_but.bind('<Leave>', check_call_collor2)
+        self.cll_chk_but.bind('<Enter>', self._change_call_check_collor)
+        self.cll_chk_but.bind('<Leave>', self._change_call_check_collor)
 
-    def check_react(self):
-        self.destroy_buttons()
-        self.action(Player.Action.CHECK)
+    def _change_call_check_collor(self, event):
+        self.cll_chk_but['bg'] = '#58FA58' if event.type == '7' else '#A9F5A9'
 
-    def call_react(self):
-        self.destroy_buttons()
-        self.action(Player.Action.CALL)
+    def _check_react(self):
+        self._destroy_buttons()
+        self._action(Player.Action.CHECK)
 
-    def draw_raise(self, max_raise, dif):
+    def _call_react(self):
+        self._destroy_buttons()
+        self._action(Player.Action.CALL)
+
+    def _draw_raise(self, max_raise, dif):
         self.raise_but = tkinter.Button(
-            self.window, height=3, width=10, bd=0,
-            bg='#F2F5A9', activebackground='black', command=self.raise_react,
+            self._window, height=3, width=10, bd=0,
+            bg='#F2F5A9', activebackground='black', command=self._raise_react,
             text='raise', fg='black', activeforeground='white')
         self.raise_but.place(anchor='n', x=325, y=343)
-        # def enter_rbut(event):
-        #     self.raise_but['bg'] = '#F4FA58'
-        # def leave_rbut(event):
-        #     self.raise_but['bg'] = '#F2F5A9'
-        # self.raise_but.bind('<Enter>', enter_rbut)
-        # self.raise_but.bind('<Leave>', leave_rbut)
-        self.raise_num = self.pict.create_rectangle(380, 343, 450, 394, fill='#F2F5A9', outline='#F2F5A9', tag='raise_num')
-        self.pict.create_text(400, 358, text='max:', anchor='s', tag='raise_num')
-        self.pict.create_text(430, 358, text=str(max_raise), anchor='s', tag='raise_num')
-        self.pict.create_text(400, 394, text='min:', anchor='s', tag='raise_num')
-        self.pict.create_text(430, 394, text=str(dif + 1), anchor='s', tag='raise_num')
-        self.raise_ent = tkinter.Entry(self.window, width=5, bd=1)
+        self.raise_num = self._pict.create_rectangle(380, 343, 450, 394, fill='#F2F5A9', outline='#F2F5A9', tag='raise_num')
+        self._pict.create_text(400, 358, text='max:', anchor='s', tag='raise_num')
+        self._pict.create_text(430, 358, text=str(max_raise), anchor='s', tag='raise_num')
+        self._pict.create_text(400, 394, text='min:', anchor='s', tag='raise_num')
+        self._pict.create_text(430, 394, text=str(dif + 1), anchor='s', tag='raise_num')
+        self.raise_ent = tkinter.Entry(self._window, width=5, bd=1)
         self.raise_ent.place(anchor='s', x=418, y=379)
-        # def enter_rnum(event):
-        #     self.pict.itemconfig(self.raise_num, fill='#F4FA58', outline='#F4FA58')
-        # def leave_rnum(event):
-        #     self.pict.itemconfig(self.raise_num, fill='#F2F5A9', outline='#F2F5A9')
-        # self.pict.tag_bind('raise_num', '<Enter>', enter_rnum)
-        # self.pict.tag_bind('raise_num', '<Leave>', leave_rnum)
-        # self.raise_ent.bind('<Enter>', enter_rnum)
-        # self.raise_ent.bind('<Leave>', leave_rnum)
+        self._pict.tag_bind('raise_num', '<Enter>', self._change_raise_collor)
+        self._pict.tag_bind('raise_num', '<Leave>', self._change_raise_collor)
+        self.raise_ent.bind('<Enter>', self._change_raise_num_collor)
+        self.raise_ent.bind('<Leave>', self._change_raise_num_collor)
 
-    def raise_react(self):
+    def _change_raise_collor(self, event):
+        self.raise_but['bg'] = '#F4FA58' if event.type == '7' else '#F2F5A9'
+
+    def _change_raise_num_collor(self, event):
+        self._pict.itemconfig(
+            self.raise_num,
+            fill='#F4FA58' if event.type == '7' else '#F2F5A9',
+            outline='#F4FA58' if event.type == '7' else '#F2F5A9')
+
+    def _raise_react(self):
         try:
             bet = int(self.raise_ent.get())
-            self.destroy_buttons()
-            self.action(Player.Action.RAISE, bet)
+            self._destroy_buttons()
+            self._action(Player.Action.RAISE, bet)
         except ValueError:
-            self.pict.itemconfig(self.raise_num, fill='red', outline='red')
-            self.window.focus()
+            self._pict.itemconfig(self.raise_num, fill='red', outline='red')
+            self._window.focus()
 
-    def draw_buttons(self, abilities=None, dif=None, point=None):
+    def _draw_buttons(self, abilities=None, dif=None, point=None):
         if abilities:
-            self.draw_fold()
+            self._draw_fold()
             if abilities[Player.Action.CHECK]:
-                self.draw_callcheck('check', self.check_react)
+                self._draw_callcheck('check', self._check_react)
             else:
-                self.draw_callcheck('call', self.call_react)
+                self._draw_callcheck('call', self._call_react)
             if abilities[Player.Action.RAISE]:
-                self.draw_raise(abilities[Player.Action.RAISE], dif)
+                self._draw_raise(abilities[Player.Action.RAISE], dif)
         else:
-            self.draw_callcheck('ok', self._new_parts[point])
+            self._draw_callcheck('ok', self._new_parts[point])
 
-    def destroy_buttons(self):
+    def _destroy_buttons(self):
         try:
             self.cll_chk_but.destroy()
             self.fold_but.destroy()
             self.raise_but.destroy()
             self.raise_ent.destroy()
-            self.pict.delete('raise_num')
+            self._pict.delete('raise_num')
         except AttributeError:
             pass
-        self.pict.itemconfig(self.info, text='')
+        self._pict.itemconfig(self._info, text='')
 
-    def new_round(self):
-        self.destroy_buttons()
+    def _new_round(self):
+        self._destroy_buttons()
         context = self._game.new_round()
         if context.success:
-            self.refresh_table()
-            self.new_stage()
+            self._refresh_table()
+            self._new_stage()
         else:
             print("ERROR", context.description)
 
-    def pre_new_round(self, context):
-        if context.state == Game.ALL_IN:
-            self.draw_distr_cards(context)
-        self.print_info(context.players, context.state, context.bank, context.result)
-        self.draw_buttons(point=context.point)
-        # self.show_table()
+    def _pre_new_round(self, context):
+        if context.state is Game.ALL_IN:
+            self._draw_distr_cards(context)
+        self._print_info(context.players, context.state, context.bank, context.result)
+        self._draw_buttons(point=context.point)
+        self._shell_show(context)
 
-    def new_stage(self):
-        self.destroy_buttons()
+    def _new_stage(self):
+        self._destroy_buttons()
         context = self._game.new_stage()
-        self.reflect(context)
+        self._reflect(context)
 
-    def pre_new_stage(self, context):
-        if context.state == Game.ALL_IN:
-            self.draw_distr_cards(context)
-        self.print_info(context.players, context.state, context.bank, context.result)
-        self.draw_buttons(point=context.point)
-        # self.show_table()
+    def _pre_new_stage(self, context):
+        if context.state is Game.ALL_IN:
+            self._draw_distr_cards(context)
+        self._print_info(context.players, context.state, context.bank, context.result)
+        self._draw_buttons(point=context.point)
+        self._shell_show(context)
 
-    def action(self, kind, bet=0):
+    def _action(self, kind, bet=0):
         context = self._game.action(kind, bet)
-        self.reflect(context)
+        self._reflect(context)
 
-    def draw_distr_cards(self, context):
-        if context.stage_name == Game.Stage.PRE_FLOP:
+    def _draw_distr_cards(self, context):
+        if context.stage_name is Game.Stage.PRE_FLOP:
             for player_data in context.players.values():
-                self.draw_hand_cards(player_data)
+                self._draw_hand_cards(player_data)
         else:
-            self.draw_tcard(context.table, context.stage_name)
+            self._draw_table_card(context.table, context.stage_name)
 
-    def pre_action(self, context):
-        if context.players["current"]["identifier"] == "Player":
+    def _pre_action(self, context):
+        if context.players["current"]["identifier"] is "Player":
             if context.stage_depth in (0, 1):
-                self.draw_distr_cards(context)
-            self.print_info(context.players, context.state, context.bank, context.result)
-            self.draw_buttons(context.players["current"]["abilities"], context.players["current"]["dif"])
-            # self.show_table()
+                self._draw_distr_cards(context)
+            self._print_info(context.players, context.state, context.bank, context.result)
+            self._draw_buttons(context.players["current"]["abilities"], context.players["current"]["dif"])
+            self._shell_show(context)
         else:
-            kind, bet = self.computer_action(context)
-            self.action(kind, bet)
+            self._action(*self._computer_action(context))
 
-    def computer_action(self, context):
-        return Player.Action.FOLD, 0
+    def _computer_bet(self, factor, dif, chips):
+        return factor * dif if factor * dif < chips else chips
 
-    def reflect(self, context):
+    def _computer_percent(self, cof, bot, flat):
+        if cof <= 1:
+            return bot * cof
+        elif cof <= 2:
+            return bot + flat * 0.5 * (cof - 1)
+        elif cof <= 3:
+            return bot + flat * (0.25 + 0.5 * (cof - 2)) 
+        elif cof <= 4:
+            return bot + flat * (0.5 + 0.375 * (cof - 3))
+        return 0.9
+
+    def _computer_action(self, context):
+        hand_range = hands_range[context.players["current"]["hand_type"]]
+        cof = context.players["current"]["dif"] / context.players["current"]["round_bets"]
+        top, bot, agr_bot, agr_mid = 0.9, 0.7, 0.6, 0.8
+        flat = top - bot
+        if context.stage_name is Game.Stage.PRE_FLOP:
+            if cof:
+                if hand_range > top:
+                    return Player.Action.RAISE, self._computer_bet(3, context.players["current"]["dif"], context.players["current"]["chips"])
+                if hand_range >= self._computer_percent(cof, bot, flat):
+                    return (Player.Action.CALL,)
+                return (Player.Action.FOLD,)
+            else:
+                if hand_range >= agr_bot:
+                    return Player.Action.RAISE, self._computer_bet(
+                        3 if hand_range >= agr_mid else 2,
+                        context.players["current"]["dif"],
+                        context.players["current"]["chips"])
+                else:
+                    return (Player.Action.CHECK,)
+        else:
+            combo = Combo(table=Table(context.table), hand=Hand(context.players["current"]["cards"]), nominal_check=True)
+            if cof:
+                if combo.type > Combo.TWO_PAIRS and not combo.is_nominal:
+                    return Player.Action.RAISE, self._computer_bet(3, context.players["current"]["dif"], context.players["current"]["chips"])
+                elif combo.type > Combo.HIGH_CARD and not combo.is_nominal or 0.5 * (hand_range + random.random()) >= cof:
+                    return (Player.Action.CALL,)
+                else:
+                    return (Player.Action.FOLD,)
+            else: # если не было повышения
+                if combo.type > Combo.HIGH_CARD and not combo.is_nominal:
+                    return Player.Action.RAISE, self._computer_bet(3, context.players["current"]["dif"], context.players["current"]["chips"])
+                else:
+                    return (Player.Action.CHECK,)
+
+    def _reflect(self, context):
         if context.success:
             self._reflections[context.point](context)
         else:
             print("ERROR", context.description)
 
-    def the_end(self, context):
-        if context.state == Game.ALL_IN:
-            self.draw_distr_cards(context)
-        self.print_info(context.players, context.state, context.bank, context.result)
-        # self.show_table()
+    def _the_end(self, context):
+        if context.state is Game.ALL_IN:
+            self._draw_distr_cards(context)
+        self._print_info(context.players, context.state, context.bank, context.result)
+        self._shell_show(context)
 
-#   def show_table(self):
-#       def str_num(num):
-#           result = str(num)
-#           return ('_'*(4-len(result)) + result)
-
-#       def str_card(cards):
-#           result = ''
-#           for card in cards:
-#               result += card.weight.symbol + card.suit.symbol + ','
-#           return (result[:-1])
-
-#       title1 = '|plr|act|rais|bets|chps|hands|cmbo|'
-#       for player in self.players:
-#           inf = (player.action[:3] if player.action else '---',)
-#           if player.action == 'raise':
-#               inf += (str_num(player.lastbet),)
-#           else:
-#               inf += ('----',)
-#           inf += (str_num(player.sbets), str_num(player.chips),)
-#           if player.__class__.__name__ != 'Human' and not self.show_down:
-#               inf += ('hide.',)
-#           else:
-#               inf += (str_card(player.hand.cards),)
-#           inf += ('_'+player.combination.combo.combo+'_' if self.show_down else '----',)
-#           if player.__class__.__name__ == 'Human':
-#               you = '|you|' + '%s|'*6 % inf
-#           else:
-#               opp = '|opp|' + '%s|'*6 % inf
-#       title2 = '|bank|_____table____|'
-#       inf2 = '|'+str_num(self.players.bank())+'|'
-#       if self.table.cards:
-#           inf2 += str_card(self.table.cards)+'|'
-
-#       print ('-'*35, title1, opp, you, '-'*35, title2, inf2, '-'*21+'\n', sep='\n')
 
 if __name__ == "__main__":
     GameGUI()

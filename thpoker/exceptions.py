@@ -41,7 +41,12 @@ class DeckCountNumberError(Exception):
 
 class CardsStringTypeError(Exception):
     def __init__(self, cards_string_type):
-        super().__init__(f"Type of count cards to push need to be 'str' not '{cards_string_type}'.")
+        super().__init__(f"Type of Cards 'cards_string' argument need to be 'str' not '{cards_string_type}'.")
+
+
+class CardsCardTypeError(Exception):
+    def __init__(self, card_type):
+        super().__init__(f"Type of card in Cards 'cards' argument need to be 'Card' not '{card_type}'.")
 
 
 class ComboCardsTypeError(Exception):

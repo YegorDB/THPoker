@@ -18,7 +18,7 @@
 import random
 
 from thpoker.exceptions import CardWeightSymbolError, CardSuitSymbolError, DeckCountTypeError, \
-    DeckCountNumberError, CardsStringTypeError, ComboCardsTypeError, ComboArgumentsError
+    DeckCountNumberError, CardsStringTypeError, CardsCardTypeError, ComboCardsTypeError, ComboArgumentsError
 from thpoker.validators import CardSymbolValidator
 
 
@@ -211,19 +211,27 @@ class Cards:
     """
     Several cards.
 
-    Cards could be set by cards string
-    Cards set of (Three of diamonds, Ten of clubs and Ace of spades) looks like Cards('3d/Tc/As')
+    Cards could be set by cards string or by some iterable of Card instanses
+    Cards set of (Three of diamonds, Ten of clubs and Ace of spades) looks like
+        Cards('3d/Tc/As') or Cards([Card('3d'), Card('Tc'), Card('As')])
 
     Also cards could be set from deck after initialization
     """
 
-    def __init__(self, cards_string=None, max_count=7):
+    def __init__(self, cards_string=None, cards=None, max_count=7):
         self.max_count = max_count
         if cards_string:
             cards_string_type = type(cards_string)
             if not cards_string_type is str:
                 raise CardsStringTypeError(cards_string_type)
             self.items = [Card(sign) for sign in cards_string.split('/')[:max_count]]
+        elif cards:
+            items = list(set(cards))[:max_count]
+            for card in items:
+                card_type = type(card)
+                if not card_type is Card:
+                    raise CardsCardTypeError(card_type)
+            self.items = items
         else:
             self.items = []
 
@@ -333,6 +341,17 @@ class Combo:
         FULL_HOUSE: "full house",
         FOUR_OF_A_KIND: "four of a kind",
         STRAIGHT_FLUSH: "straight flush"}
+
+    SHORT_TYPE_NAMES = {
+        HIGH_CARD: "hc",
+        ONE_PAIR: "op",
+        TWO_PAIRS: "tp",
+        THREE_OF_A_KIND: "tk",
+        STRAIGHT: "st",
+        FLUSH: "fl",
+        FULL_HOUSE: "fh",
+        FOUR_OF_A_KIND: "fk",
+        STRAIGHT_FLUSH: "sf"}
 
     class Sequence:
         """Cards sequence."""
@@ -550,6 +569,10 @@ class Combo:
     @property
     def name(self):
         return self.TYPE_NAMES[self.type]
+
+    @property
+    def short_name(self):
+        return self.SHORT_TYPE_NAMES[self.type]
 
     def __str__(self):
         return  f"{self.name} ({str(self.cards)[1:-1]})"
