@@ -1,3 +1,18 @@
+# Copyright 2018 Yegor Bitensky
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 import tkinter, random
 
 from thpoker.game import Player, Game
@@ -47,27 +62,28 @@ class ShellPrint:
         return f"{'_'*(4-len(number))}{number}"
 
     def _str_card(self, cards):
-        return f"{str(cards)[1:-1]}"
+        return f"{str(cards)[1:-1].replace(' ', '')}"
 
     def _shell_show(self, context):
         title1 = '|idf|act|rais|bets|chps|hands|cmbo|'
         for player_data in context.players.values():
-            inf = (player_data["last_action"].kind[:3] or '---',)
-            inf += (self._str_num(player_data["last_action"].bet) if player_data["last_action"].kind is Player.Action.RAISE else '----',)
+            inf = (player_data["last_action"].kind[:3] if player_data["last_action"] else '---',)
+            inf += (self._str_num(player_data["last_action"].bet) if player_data["last_action"] is Player.Action.RAISE else '----',)
             inf += (self._str_num(player_data["stage_bets"]), self._str_num(player_data["chips"]),)
             if player_data["identifier"] is 'Player' or context.state is Game.SHOW_DOWN:
                 inf += (self._str_card(player_data["cards"]),)
             else:
-                inf += ('hide.',)
-            inf += (f'-{player_data["combo"].short_name if context.state is Game.SHOW_DOWN else --}-',)
+                inf += ('-----',)
+            inf += (f'-{player_data["combo"].short_name if context.state is Game.SHOW_DOWN else "--"}-',)
             if player_data["identifier"] is 'Player':
                 plr = f'|plr|{"|".join(inf)}'
             else:
                 opp = f'|opp|{"|".join(inf)}'
         title2 = '|bank|_____table____|'
-        inf2 = '|{self._str_num(context.bank)}|'
-        if not context.stage_name is Game.PRE_FLOP:
-            inf2 += '{self._str_card(self.table.cards)}|'
+        inf2 = f'|{self._str_num(context.bank)}|'
+        if not context.stage_name is Game.Stage.PRE_FLOP:
+            table = self._str_card(context.table)
+            inf2 += f'{table}{"-"*(14-len(table))}|'
         else:
             inf2 += '--------------|'
 
@@ -382,7 +398,7 @@ class GameGUI(ShellPrint):
                 else:
                     return (Player.Action.CHECK,)
         else:
-            combo = Combo(table=Table(context.table), hand=Hand(context.players["current"]["cards"]), nominal_check=True)
+            combo = Combo(table=Table(cards=context.table), hand=Hand(cards=context.players["current"]["cards"]), nominal_check=True)
             if cof:
                 if combo.type > Combo.TWO_PAIRS and not combo.is_nominal:
                     return Player.Action.RAISE, self._computer_bet(3, context.players["current"]["dif"], context.players["current"]["chips"])

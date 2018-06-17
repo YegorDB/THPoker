@@ -116,6 +116,7 @@ class Card:
         @CardSymbolValidator(symbols, CardSuitSymbolError)
         def __init__(self, symbol):
             self.symbol = symbol
+            self.number = self.numbers()[symbol]
             self.name = self.names()[symbol]
 
         def __str__(self):
@@ -129,6 +130,10 @@ class Card:
 
         def __ne__(self, other):
             return self.symbol != other.symbol
+
+        @classmethod
+        def numbers(cls):
+            return {cls.symbols[i]: i for i in range(4)}
 
         @classmethod
         def names(cls):
@@ -161,7 +166,10 @@ class Card:
         return f"{str(self.weight) if self.weight else 'X'}{str(self.suit) if self.suit else 'x'}"
 
     def __repr__(self):
-        return f"{str(self.weight) if self.weight else 'X'}{str(self.suit) if self.suit else 'x'}"
+        return f"{repr(self.weight) if self.weight else 'X'}{repr(self.suit) if self.suit else 'x'}"
+
+    def __hash__(self):
+        return self.weight.number * 10 + self.suit.number
 
     def __lt__(self, other):
         return self.weight < other.weight
@@ -262,17 +270,17 @@ class Cards:
 class Table(Cards):
     """Table cards."""
 
-    def __init__(self, cards_string=None):
-        super().__init__(cards_string=cards_string, max_count=5)
+    def __init__(self, cards_string=None, cards=None):
+        super().__init__(cards_string=cards_string, cards=cards, max_count=5)
 
 
 class Hand(Cards):
     """Player's hand cards."""
 
-    def __init__(self, cards_string=None):
+    def __init__(self, cards_string=None, cards=None):
         self.type = ''
         self.is_pair = False
-        super().__init__(cards_string=cards_string, max_count=2)
+        super().__init__(cards_string=cards_string, cards=cards, max_count=2)
         if self.items:
             self.after_pull()
 
