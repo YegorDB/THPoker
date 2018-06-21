@@ -87,7 +87,7 @@ class ShellPrint:
         else:
             inf2 += '--------------|'
 
-        print ('-'*35, title1, opp, plr, '-'*35, title2, inf2, '-'*21+'\n', sep='\n')
+        print('-'*35, title1, opp, plr, '-'*35, title2, inf2, '-'*21+'\n', sep='\n')
 
 
 class GameGUI(ShellPrint):
@@ -354,17 +354,18 @@ class GameGUI(ShellPrint):
             self._draw_table_card(context.table, context.stage_name)
 
     def _pre_action(self, context):
+        self._shell_show(context)
         if context.players["current"]["identifier"] is "Player":
             if context.stage_depth in (0, 1):
                 self._draw_distr_cards(context)
             self._print_info(context.players, context.state, context.bank, context.result)
             self._draw_buttons(context.players["current"]["abilities"], context.players["current"]["dif"])
-            self._shell_show(context)
         else:
             self._action(*self._computer_action(context))
 
-    def _computer_bet(self, factor, dif, chips):
-        return factor * dif if factor * dif < chips else chips
+    def _computer_bet(self, factor, context):
+        bet = factor * (context.players["current"]["dif"] or int(context.bank / 4))
+        return bet if bet < context.players["current"]["chips"] else context.players["current"]["chips"]
 
     def _computer_percent(self, cof, bot, flat):
         if cof <= 1:
@@ -385,30 +386,28 @@ class GameGUI(ShellPrint):
         if context.stage_name is Game.Stage.PRE_FLOP:
             if cof:
                 if hand_range > top:
-                    return Player.Action.RAISE, self._computer_bet(3, context.players["current"]["dif"], context.players["current"]["chips"])
+                    return Player.Action.RAISE, self._computer_bet(3, context)
                 if hand_range >= self._computer_percent(cof, bot, flat):
                     return (Player.Action.CALL,)
                 return (Player.Action.FOLD,)
             else:
                 if hand_range >= agr_bot:
-                    return Player.Action.RAISE, self._computer_bet(
-                        3 if hand_range >= agr_mid else 2,
-                        context.players["current"]["dif"],
-                        context.players["current"]["chips"])
+                    factor = 3 if hand_range >= agr_mid else 2
+                    return Player.Action.RAISE, self._computer_bet(factor, context)
                 else:
                     return (Player.Action.CHECK,)
         else:
             combo = Combo(table=Table(cards=context.table), hand=Hand(cards=context.players["current"]["cards"]), nominal_check=True)
             if cof:
                 if combo.type > Combo.TWO_PAIRS and not combo.is_nominal:
-                    return Player.Action.RAISE, self._computer_bet(3, context.players["current"]["dif"], context.players["current"]["chips"])
+                    return Player.Action.RAISE, self._computer_bet(3, context)
                 elif combo.type > Combo.HIGH_CARD and not combo.is_nominal or 0.5 * (hand_range + random.random()) >= cof:
                     return (Player.Action.CALL,)
                 else:
                     return (Player.Action.FOLD,)
-            else: # если не было повышения
+            else:
                 if combo.type > Combo.HIGH_CARD and not combo.is_nominal:
-                    return Player.Action.RAISE, self._computer_bet(3, context.players["current"]["dif"], context.players["current"]["chips"])
+                    return Player.Action.RAISE, self._computer_bet(3, context)
                 else:
                     return (Player.Action.CHECK,)
 

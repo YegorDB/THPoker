@@ -47,6 +47,12 @@ class Player:
             self.kind = kind
             self.bet = bet
 
+        def __str__(self):
+            return f"{self.kind}{self.bet or ''}"
+
+        def __repr__(self):
+            return f"{self.kind}{self.bet or ''}"
+
 
     def __init__(self, identifier):
         self.identifier = identifier
@@ -80,6 +86,9 @@ class Player:
     def new_stage(self):
         self.stage_bets = 0
         self.dif = 0
+        self.refresh_last_action()
+
+    def refresh_last_action(self):
         self.last_action = None
 
     def _get_abilities(self):
@@ -181,6 +190,10 @@ class Game:
                 player.new_stage()
             self._curent_index = 0
 
+        def action(self, kind, bet):
+            self.opponent.refresh_last_action()
+            return self.current.action(kind, bet)
+
         @property
         def current(self): # active player
             return self[self._curent_index]
@@ -197,8 +210,7 @@ class Game:
 
         def get_dif(self):
             max_round_bets = max([player.round_bets for player in self])
-            for player in self:
-                player.get_dif(max_round_bets)
+            self.current.get_dif(max_round_bets)
 
         def get_cards(self, deck):
             for player in self:
@@ -335,7 +347,7 @@ class Game:
                 self.state = self.ALL_IN
 
     def action(self, kind, bet=0):
-        result = self.players.current.action(kind, bet)
+        result = self.players.action(kind, bet)
         if not result.success:
             return result
 
