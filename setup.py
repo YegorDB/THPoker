@@ -33,4 +33,5 @@ setup(
     keywords='poker gambling cards',
     packages=find_packages(exclude=['tests*']),
     python_requires='>=3.6',
+    install_requires=['CTHPoker'],
 )
