@@ -8,7 +8,7 @@ pip install THPoker
 
 ### Requirements
 
-* Python 3.6
+* Python 3.6 or higher
 
 ## Usage
 
@@ -354,7 +354,7 @@ print(combo1.is_half_nominal)
 
 ### HardCore
 
-*HardCore is the project module that allows you to find a combination faster than Core module, but HardCore is not as friendly as Core is*
+*HardCore is the project module that allows you to find a combination faster than Core module, but HardCore is not as friendly as Core is. Hardcore module based on [CTHPoker](https://github.com/YegorDB/CTHPoker) module, wich is based on C.*
 
 #### hcard(sign)
 
