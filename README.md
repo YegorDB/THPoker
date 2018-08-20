@@ -450,13 +450,13 @@ from thpoker.hardcore import hcombo
 
 combo1 = hcombo("Tc/9c/8c/7c/6c")
 print(combo1)
-# (9, 10)
+# [9, 10]
 # 1st number mean that it is straight flush
 # 2nd number mean that the highest straight flush card is "ten"
 
 combo2 = hcombo("4d/Js/4s/8d/4h")
 print(combo2)
-# (4, 4, 11, 8)
+# [4, 4, 11, 8]
 # 1st number mean that it is three of a kind
 # 2nd number mean that it is three of "fours"
 # 3nd and 4th numbers mean additional cards ("jack" and "eight")
@@ -474,13 +474,13 @@ from thpoker.hardcore import hcards, chcombo
 
 combo1 = chcombo(hcards("Qs/2h/9s/6s/Ad"))
 print(combo1)
-# (1, 14, 12, 9, 6, 2)
+# [1, 14, 12, 9, 6, 2]
 # 1st number mean that it is high card
 # other numbers mean combination cards
 
 combo2 = chcombo(hcards("Jd/3d/7d/Kd/5d"))
 print(combo2)
-# (6, 13, 11, 7, 5, 3)
+# [6, 13, 11, 7, 5, 3]
 # 1st number mean that it is flush
 # other numbers mean combination cards
 
@@ -497,7 +497,7 @@ from thpoker.hardcore import hcards, chcombo
 
 combo1, ratio1 = chcombo(table=hcards("7d/Js/3d/7c/7h"),  hand=hcards("7s/8s", in_hand=1))
 print(combo1)
-# (8, 7, 11)
+# [8, 7, 11]
 # 1st number mean that it is four of a kind
 # 2nd number mean that it is four of a "seven"
 # 3rd number mean that additional combo card is "jack"
@@ -507,7 +507,7 @@ print(ratio1)
 
 combo2, ratio2 = chcombo(table=hcards("5h/Qc/8d/Ts/5d"),  hand=hcards("Tc/Kh", in_hand=1))
 print(combo2)
-# (3, 10, 5, 13)
+# [3, 10, 5, 13]
 # 1st number mean that it is two pairs
 # 2nd number mean that 1st pair is pair of "ten"
 # 3rd number mean that 2nd pair is pair of "five"
@@ -518,7 +518,7 @@ print(ratio2)
 
 combo3, ratio3 = chcombo(table=hcards("Ad/2s/3c/4c/5h"),  hand=hcards("As/Ac", in_hand=1))
 print(combo3)
-# (5, 5)
+# [5, 5]
 # 1st number mean that it is straight
 # 2nd number mean that the highest straight card is "five"
 print(ratio3)
