@@ -153,14 +153,6 @@ class Player:
 
 # two players game yet
 class Game:
-    # AGRESSIVE = {
-    #     Player.Action.RAISE: 1,
-    #     Player.Action.CALL: 0.5,
-    #     Player.Action.CHECK: 0.5,
-    #     Player.Action.FOLD: 0,
-    #     Player.Action.BLIND_BET: None,
-    # }
-
     NORMAL = 'normal'
     FOLD = 'fold'
     ALL_IN = 'all-in'
@@ -350,8 +342,6 @@ class Game:
         result = self.players.action(kind, bet)
         if not result.success:
             return result
-
-        # agressive = self.AGRESSIVE[kind]
 
         action_kind = self.players.current.last_action.kind
         if action_kind == Player.Action.FOLD:

@@ -90,29 +90,13 @@ class ShellPrint:
         print('-'*35, title1, opp, plr, '-'*35, title2, inf2, '-'*21+'\n', sep='\n')
 
 
-class GameGUI(ShellPrint):
+class DrawGameGUI:
     _collor_suit = {
         'c': '#A9D0F5',
         'd': '#F2F5A9',
         'h': '#F5A9A9',
         's': '#A9F5A9',
     }
-
-    def __init__(self, chips=1000, blindes=[10, 20]):
-        self._game = Game({"chips": chips, "blindes": blindes}, Player("Player"), Player("Computer"))
-        self._reflections = {
-            Game.ACTION_NEEDED: self._pre_action,
-            Game.STAGE_NEEDED: self._pre_new_stage,
-            Game.ROUND_NEEDED: self._pre_new_round,
-            Game.THE_END: self._the_end,
-        }
-        self._new_parts = {
-            Game.STAGE_NEEDED: self._new_stage,
-            Game.ROUND_NEEDED: self._new_round,
-        }
-        self._get_window()
-        self._new_round()
-        self._window.mainloop()
 
     def _get_window(self):
         self._window = tkinter.Tk()
@@ -314,38 +298,6 @@ class GameGUI(ShellPrint):
             pass
         self._pict.itemconfig(self._info, text='')
 
-    def _new_round(self):
-        self._destroy_buttons()
-        context = self._game.new_round()
-        if context.success:
-            self._refresh_table()
-            self._new_stage()
-        else:
-            print("ERROR", context.description)
-
-    def _pre_new_round(self, context):
-        if context.state is Game.ALL_IN:
-            self._draw_distr_cards(context)
-        self._print_info(context.players, context.state, context.bank, context.result)
-        self._draw_buttons(point=context.point)
-        self._shell_show(context)
-
-    def _new_stage(self):
-        self._destroy_buttons()
-        context = self._game.new_stage()
-        self._reflect(context)
-
-    def _pre_new_stage(self, context):
-        if context.state is Game.ALL_IN:
-            self._draw_distr_cards(context)
-        self._print_info(context.players, context.state, context.bank, context.result)
-        self._draw_buttons(point=context.point)
-        self._shell_show(context)
-
-    def _action(self, kind, bet=0):
-        context = self._game.action(kind, bet)
-        self._reflect(context)
-
     def _draw_distr_cards(self, context):
         if context.stage_name is Game.Stage.PRE_FLOP:
             for player_data in context.players.values():
@@ -353,16 +305,8 @@ class GameGUI(ShellPrint):
         else:
             self._draw_table_card(context.table, context.stage_name)
 
-    def _pre_action(self, context):
-        self._shell_show(context)
-        if context.players["current"]["identifier"] is "Player":
-            if context.stage_depth in (0, 1):
-                self._draw_distr_cards(context)
-            self._print_info(context.players, context.state, context.bank, context.result)
-            self._draw_buttons(context.players["current"]["abilities"], context.players["current"]["dif"])
-        else:
-            self._action(*self._computer_action(context))
 
+class ComputerActions:
     def _computer_bet(self, factor, context):
         bet = factor * (context.players["current"]["dif"] or int(context.bank / 4))
         return bet if bet < context.players["current"]["chips"] else context.players["current"]["chips"]
@@ -410,6 +354,65 @@ class GameGUI(ShellPrint):
                     return Player.Action.RAISE, self._computer_bet(3, context)
                 else:
                     return (Player.Action.CHECK,)
+
+
+class GameGUI(DrawGameGUI, ComputerActions, ShellPrint):
+    def __init__(self, chips=1000, blindes=[10, 20]):
+        self._game = Game({"chips": chips, "blindes": blindes}, Player("Player"), Player("Computer"))
+        self._reflections = {
+            Game.ACTION_NEEDED: self._pre_action,
+            Game.STAGE_NEEDED: self._pre_new_stage,
+            Game.ROUND_NEEDED: self._pre_new_round,
+            Game.THE_END: self._the_end,
+        }
+        self._new_parts = {
+            Game.STAGE_NEEDED: self._new_stage,
+            Game.ROUND_NEEDED: self._new_round,
+        }
+        self._get_window()
+        self._new_round()
+        self._window.mainloop()
+
+    def _new_round(self):
+        context = self._game.new_round()
+        if context.success:
+            self._refresh_table()
+            self._new_stage()
+        else:
+            print("ERROR", context.description)
+
+    def _pre_new_round(self, context):
+        if context.state is Game.ALL_IN:
+            self._draw_distr_cards(context)
+        self._print_info(context.players, context.state, context.bank, context.result)
+        self._draw_buttons(point=context.point)
+        self._shell_show(context)
+
+    def _new_stage(self):
+        self._destroy_buttons()
+        context = self._game.new_stage()
+        self._reflect(context)
+
+    def _pre_new_stage(self, context):
+        if context.state is Game.ALL_IN:
+            self._draw_distr_cards(context)
+        self._print_info(context.players, context.state, context.bank, context.result)
+        self._draw_buttons(point=context.point)
+        self._shell_show(context)
+
+    def _action(self, kind, bet=0):
+        context = self._game.action(kind, bet)
+        self._reflect(context)
+
+    def _pre_action(self, context):
+        self._shell_show(context)
+        if context.players["current"]["identifier"] is "Player":
+            if context.stage_depth in (0, 1):
+                self._draw_distr_cards(context)
+            self._print_info(context.players, context.state, context.bank, context.result)
+            self._draw_buttons(context.players["current"]["abilities"], context.players["current"]["dif"])
+        else:
+            self._action(*self._computer_action(context))
 
     def _reflect(self, context):
         if context.success:
