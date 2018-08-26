@@ -159,13 +159,17 @@ class Game:
     class Players:
         def __init__(self, chips, *players):
             self._scroll = players
-            self._order = random.choice(([0, 1], [1, 0]))
+            self._order = self._get_order(len(players))
+            self._involved_order = self._order[:]
             self._curent_index = 0 # active player's index
             for player in self:
                 player.get_chips(chips)
 
         def __getitem__(self, key):
-            return self._scroll[self._order[key]]
+            return self._scroll[self._involved_order[key]]
+
+        def _get_order(self, players_count):
+            return random.sample(range(players_count), players_count)
 
         def new_round(self):
             for player in self:
@@ -177,22 +181,20 @@ class Game:
             self._curent_index = 0
 
         def action(self, kind, bet):
-            self.opponent.refresh_last_action()
+            for player in self:
+                player.refresh_last_action() # really need?
             return self.current.action(kind, bet)
 
         @property
         def current(self): # active player
             return self[self._curent_index]
 
-        @property
-        def opponent(self): # active player's opponent
-            return self[abs(self._curent_index - 1)]
-
         def next_player(self): # transition move rights
-            self._curent_index = abs(self._curent_index - 1)
+            self._curent_index = self._curent_index + 1 if self._curent_index < len(self._involved_order) - 1 else 0
 
         def change_order(self):
-            self._order.reverse()
+            self._order = self._order[1:] + self._order[0]
+            self._involved_order = self._order[:]
 
         def get_dif(self):
             max_round_bets = max([player.round_bets for player in self])
@@ -207,40 +209,54 @@ class Game:
             return sum((player.round_bets for player in self))
 
         def get_fold(self):
-            self.opponent.get_chips(self.bank)
+            self._involved_order.pop(self._curent_index)
+            if len(self._involved_order) == 1:
+                self[self._involved_order[0]].get_chips(self.bank)
 
-        def get_result(self, table):
-            winners = []
-            loosers = []
+        def _get_result_rank(self, table):
+            rank = {"winners": [], "loosers": []}
             best_combo = None
             for player in self:
                 combo = player.combo or player.get_combo(table)
                 if best_combo:
                     if combo > best_combo:
                         best_combo = combo
-                        loosers += winners
-                        winners = [player]
+                        rank["loosers"] += rank["winners"]
+                        rank["winners"] = [player]
                     elif combo == best_combo:
-                        winners.append(player)
+                        rank["winners"].append(player)
                     else:
-                        loosers.append(player)
+                        rank["loosers"].append(player)
                 else:
                     best_combo = combo
-                    winners = [player]
+                    rank["winners"] = [player]
+            return rank
+
+        def _get_result_data(self, winners, loosers):
+            data = {"winners": {}, "loosers": {}}
             winners_bets = sum((p.round_bets for p in winners))
             all_bets = self.bank
             for looser in loosers:
+                data["loosers"][looser.identifier] = looser.round_bets
                 if looser.round_bets > winners_bets:
                     over_bet = looser.round_bets - winners_bets
                     all_bets -= over_bet
                     looser.get_chips(over_bet)
+                    data["loosers"][looser.identifier] -= over_bet
             gain_bets = all_bets - winners_bets
             for winner in winners:
-                winner.get_chips(winner.round_bets + int(gain_bets * winner.round_bets / winners_bets))
-            return {
-                "winners": [p.identifier for p in winners],
-                "loosers": [p.identifier for p in loosers],
-            }
+                gain = winner.round_bets + int(gain_bets * winner.round_bets / winners_bets)
+                winner.get_chips(gain)
+                data["winners"][winner.identifier] = gain
+            getted_gain = sum(data["winners"].values())
+            if getted_gain < gain_bets:
+                for i in range(gain_bets - getted_gain):
+                    winners[i].get_chips(1)
+                    data["winners"][winners[i].identifier] += 1
+            return data
+
+        def get_result(self, table):
+            return self._get_result_data(**self._get_result_rank(table))
 
 
     class Stage:
