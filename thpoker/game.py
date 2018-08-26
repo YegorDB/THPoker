@@ -48,10 +48,7 @@ class Player:
             self.bet = bet
 
         def __str__(self):
-            return f"{self.kind}{self.bet or ''}"
-
-        def __repr__(self):
-            return f"{self.kind}{self.bet or ''}"
+            return f"{self.kind} {self.bet or ''}".strip()
 
 
     def __init__(self, identifier):
@@ -63,11 +60,13 @@ class Player:
         self.abilities = {
             self.Action.RAISE: 0,
             self.Action.CALL: 0,
-            self.Action.CHECK: False}
+            self.Action.CHECK: False,
+        }
         self.has_ability = {
             self.Action.RAISE: lambda bet: self.abilities[self.Action.RAISE] >= bet,
             self.Action.CALL: lambda: self.abilities[self.Action.CALL] > 0,
-            self.Action.CHECK: lambda: self.abilities[self.Action.CHECK]}
+            self.Action.CHECK: lambda: self.abilities[self.Action.CHECK],
+        }
         self.dif = 0 # difference beetwen player's round bets and max bets of current round
         self.combo = None
         self.hand = Hand()
@@ -81,6 +80,7 @@ class Player:
 
     def new_round(self):
         self.round_bets = 0
+        self.combo = None
         self.hand.clean()
 
     def new_stage(self):
@@ -110,7 +110,6 @@ class Player:
         args = [bet] if kind in self.Action.WITH_BET else []
         if kind not in self.Action.ALLWAYS_ACCEPTED and not self.has_ability[kind](*args):
             return Context(success=False, description="Illegal move.")
-
         getattr(self, f"_{kind}")(*args)
         return Context(success=True, description="Successfully moved.")
 
@@ -119,29 +118,24 @@ class Player:
         self.round_bets += bet
         self.stage_bets += bet
 
-    def _raise(self, bet):
+    def _with_bet_action(bet, action_kind):
         if self.chips > bet:
-            self.last_action = self.Action(self.Action.RAISE, bet)
+            self.last_action = self.Action(action_kind, bet)
             self._betting(bet)
         else:
             self._all_in()
 
+    def _raise(self, bet):
+        self._with_bet_action(bet, self.Action.RAISE)
+
     def _call(self):
-        if self.chips > self.dif:
-            self.last_action = self.Action(self.Action.CALL, self.dif)
-            self._betting(self.dif)
-        else:
-            self._all_in()
+        self._with_bet_action(self.dif, self.Action.CALL)
 
     def _check(self):
         self.last_action = self.Action(self.Action.CHECK)
 
     def _blind_bet(self, bet):
-        if self.chips > bet:
-            self.last_action = self.Action(self.Action.BLIND_BET, bet)
-            self._betting(bet)
-        else:
-            self._all_in()
+        self._with_bet_action(bet, self.Action.BLIND_BET)
 
     def _fold(self):
         self.last_action = self.Action(self.Action.FOLD)
