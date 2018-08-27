@@ -243,6 +243,10 @@ class Game:
             return max_chips
 
         @property
+        def rolling_count(self):
+            return len(self._order)
+
+        @property
         def involved_count(self):
             return len(self._involved_order)
 
@@ -285,6 +289,8 @@ class Game:
                     all_bets -= over_bet
                     looser.get_chips(over_bet)
                     data["loosers"][looser.identifier] -= over_bet
+                if not looser.chips:
+                    self._order.pop(self._order.index(self.index(looser)))
             gain_bets = all_bets - winners_bets
             for winner in winners:
                 gain = winner.round_bets + int(gain_bets * winner.round_bets / winners_bets)
@@ -337,7 +343,6 @@ class Game:
 
 
     def __init__(self, settings, *players):
-        self._players_count = len(players)
         self._players = self.Players(settings["chips"], *players)
         self._blindes = settings["blindes"]
         self._state = self.NORMAL
@@ -368,7 +373,7 @@ class Game:
             return Context(success=False, description="Round over.", **self._get_context_data(self.ROUND_NEEDED))
         self._stage.next()
         self._players.new_stage()
-        if self._players_count == 2 and self._stage.name == self.Stage.FLOP:
+        if self._players.rolling_count == 2 and self._stage.name == self.Stage.FLOP:
             self._players.change_order()
         self._distribution()
         if self._state != self.ALL_IN or \
@@ -424,16 +429,16 @@ class Game:
 
     def _show_down(self):
         self._result = self._players.get_result(self._table)
-        self._state = self.THE_END if self._the_end else self.SHOW_DOWN
+        self._state = self.THE_END if self._players.rolling_count == 1 else self.SHOW_DOWN
         return self._stage_end()
 
     def _stage_end(self):
-        if self._stage.name == self.Stage.PRE_FLOP and self._state == self.FOLD:
-            self._players.change_order()
         if self._state == self.THE_END:
             point = self.THE_END
             description = "Game has been ended."
         elif self._state in (self.SHOW_DOWN, self.FOLD):
+            if self._stage.name == self.Stage.PRE_FLOP:
+                self._players.change_order()
             point = self.ROUND_NEEDED
             description = "Round has been ended."
         else:
@@ -443,13 +448,6 @@ class Game:
             success=True,
             description=description,
             **self._get_context_data(point, True))
-
-    @property
-    def _the_end(self):
-        for player in self._players:
-            if player.chips == 0:
-                return True
-        return False
 
     def _get_context_data(self, point, additional=False):
         data = {"point": point}
@@ -461,27 +459,20 @@ class Game:
                 "stage_depth": self._stage.depth_count,
                 "bank": self._players.bank,
                 "result": self._result,
+                "current_player": self._players.current.identifier,
                 "players": {
-                    "current": {
-                        "identifier": self._players.current.identifier,
-                        "chips": self._players.current.chips,
-                        "stage_bets": self._players.current.stage_bets,
-                        "round_bets": self._players.current.round_bets,
-                        "dif": self._players.current.dif,
-                        "abilities": self._players.current.abilities,
-                        "cards": self._players.current.hand.items[:],
-                        "hand_type": self._players.current.hand.type,
-                        "combo": self._players.current.combo,
-                        "last_action": self._players.current.last_action,
-                    },
-                    "opponent": {
-                        "identifier": self._players.opponent.identifier,
-                        "chips": self._players.opponent.chips,
-                        "stage_bets": self._players.opponent.stage_bets,
-                        "cards": self._players.opponent.hand.items[:],
-                        "combo": self._players.opponent.combo,
-                        "last_action": self._players.opponent.last_action,
-                    },
+                    player.identifier: {
+                        "chips": player.chips,
+                        "stage_bets": player.stage_bets,
+                        "round_bets": player.round_bets,
+                        "dif": player.dif,
+                        "abilities": player.abilities,
+                        "cards": player.hand.items[:],
+                        "hand_type": player.hand.type,
+                        "combo": player.combo,
+                        "last_action": player.last_action,
+                    }
+                    for player in self._players
                 }
             })
         return data
