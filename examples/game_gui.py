@@ -65,29 +65,43 @@ class ShellPrint:
         return f"{str(cards)[1:-1].replace(' ', '')}"
 
     def _shell_show(self, context):
-        title1 = '|idf|act|rais|bets|chps|hands|cmbo|'
         for player_data in context.players.values():
-            inf = (player_data["last_action"].kind[:3] if player_data["last_action"] else '---',)
-            inf += (self._str_num(player_data["last_action"].bet) if player_data["last_action"] is Player.Action.RAISE else '----',)
-            inf += (self._str_num(player_data["stage_bets"]), self._str_num(player_data["chips"]),)
-            if player_data["identifier"] is 'Player' or context.state is Game.SHOW_DOWN:
-                inf += (self._str_card(player_data["cards"]),)
-            else:
-                inf += ('-----',)
-            inf += (f'-{player_data["combo"].short_name if context.state is Game.SHOW_DOWN else "--"}-',)
+            inf = (
+                player_data["last_action"].kind[:3]
+                if player_data["last_action"] else
+                '---',
+                self._str_num(player_data["last_action"].bet)
+                if player_data["last_action"] is Player.Action.RAISE else
+                '----',
+                self._str_num(player_data["stage_bets"]),
+                self._str_num(player_data["chips"]),
+                self._str_card(player_data["cards"])
+                if player_data["identifier"] is 'Player' or context.state is Game.SHOW_DOWN else
+                '-----',
+                f'-{player_data["combo"].short_name if context.state is Game.SHOW_DOWN else "--"}-',
+            )
             if player_data["identifier"] is 'Player':
-                plr = f'|plr|{"|".join(inf)}'
+                player_info = f'|plr|{"|".join(inf)}'
             else:
-                opp = f'|opp|{"|".join(inf)}'
-        title2 = '|bank|_____table____|'
-        inf2 = f'|{self._str_num(context.bank)}|'
+                opponent_info = f'|opp|{"|".join(inf)}'
+        common_info = f'|{self._str_num(context.bank)}|'
         if not context.stage_name is Game.Stage.PRE_FLOP:
             table = self._str_card(context.table)
-            inf2 += f'{table}{"-"*(14-len(table))}|'
+            common_info += f'{table}{"-"*(14-len(table))}|'
         else:
-            inf2 += '--------------|'
+            common_info += '--------------|'
 
-        print('-'*35, title1, opp, plr, '-'*35, title2, inf2, '-'*21+'\n', sep='\n')
+        print(
+            '-----------------------------------',
+            '|idf|act|rais|bets|chps|hands|cmbo|',
+            opponent_info,
+            player_info,
+            '-----------------------------------',
+            '|bank|     table    |',
+            common_info,
+            '---------------------' + '\n',
+            sep='\n',
+        )
 
 
 class DrawGameGUI:
@@ -136,15 +150,15 @@ class DrawGameGUI:
         self._pict.create_arc(25, 100, 225, 300, start=90, extent=180, fill='darkgreen', outline='darkgreen')
 
     def _print_info(self, players_data, state, bank, result):
-        for player_data in players_data.values():
-            if player_data["identifier"] is "Player":
+        for identifier, player_data in players_data.items():
+            if identifier is "Player":
                 self._pict.itemconfig(self._plr_chips, text=str(player_data["chips"]))
                 self._pict.itemconfig(self._plr_bet, text=str(player_data["stage_bets"]))
                 if state is Game.SHOW_DOWN:
                     combo_name = str(player_data["combo"])
-                    if len(result["winners"]) == 2:
+                    if not result["loosers"]:
                         result_name = "draw"
-                    elif player_data["identifier"] in result["winners"]:
+                    elif identifier in result["winners"]:
                         result_name = "win"
                     else:
                         result_name = "lose"
@@ -156,7 +170,7 @@ class DrawGameGUI:
                 self._pict.itemconfig(self._opp_chips, text=str(player_data["chips"]))
                 self._pict.itemconfig(self._opp_bet, text=str(player_data["stage_bets"]))
                 if state is Game.SHOW_DOWN:
-                    self._draw_hand_cards(player_data, distr=False)
+                    self._draw_hand_cards(identifier, player_data, distr=False)
                     self._pict.itemconfig(self._opp_combo, text=str(player_data["combo"]))
                 else:
                     self._pict.itemconfig(self._opp_combo, text='')
@@ -178,8 +192,8 @@ class DrawGameGUI:
         else:
             self._draw_card(table[-1], 60, 175, len(table)-1, 'table')
 
-    def _draw_hand_cards(self, player_data, distr=True):
-        is_player = player_data["identifier"] is "Player"
+    def _draw_hand_cards(self, identifier, player_data, distr=True):
+        is_player = identifier is "Player"
         dy, tag = (130, 'phand') if is_player else (0, 'chand')
         if distr and not is_player:
             self._draw_hide_cards(dy, tag)
@@ -204,32 +218,32 @@ class DrawGameGUI:
         self._pict.delete('phand')
 
     def _draw_fold(self):
-        self.fold_but = tkinter.Button(
+        self._fold_but = tkinter.Button(
             self._window, height=3, width=10, bd=0,
             bg='#F5A9A9', activebackground='black', command=self._fold_react,
             text='fold', fg='black', activeforeground='white')
-        self.fold_but.place(anchor='n', x=75, y=343)
-        self.fold_but.bind('<Enter>', self._change_fold_collor)
-        self.fold_but.bind('<Leave>', self._change_fold_collor)
+        self._fold_but.place(anchor='n', x=75, y=343)
+        self._fold_but.bind('<Enter>', self._change_fold_collor)
+        self._fold_but.bind('<Leave>', self._change_fold_collor)
     
     def _change_fold_collor(self, event):
-        self.fold_but['bg'] = '#FA5858' if event.type == '7' else '#F5A9A9'
+        self._fold_but['bg'] = '#FA5858' if event.type == '7' else '#F5A9A9'
 
     def _fold_react(self):
         self._destroy_buttons()
         self._action(Player.Action.FOLD)
 
     def _draw_callcheck(self, text, command):
-        self.cll_chk_but = tkinter.Button(
+        self._cll_chk_but = tkinter.Button(
             self._window, height=3, width=10, bd=0,
             bg='#A9F5A9', activebackground='black', command=command,
             text=text, fg='black', activeforeground='white')
-        self.cll_chk_but.place(anchor='n', x=200, y=343)
-        self.cll_chk_but.bind('<Enter>', self._change_call_check_collor)
-        self.cll_chk_but.bind('<Leave>', self._change_call_check_collor)
+        self._cll_chk_but.place(anchor='n', x=200, y=343)
+        self._cll_chk_but.bind('<Enter>', self._change_call_check_collor)
+        self._cll_chk_but.bind('<Leave>', self._change_call_check_collor)
 
     def _change_call_check_collor(self, event):
-        self.cll_chk_but['bg'] = '#58FA58' if event.type == '7' else '#A9F5A9'
+        self._cll_chk_but['bg'] = '#58FA58' if event.type == '7' else '#A9F5A9'
 
     def _check_react(self):
         self._destroy_buttons()
@@ -240,25 +254,25 @@ class DrawGameGUI:
         self._action(Player.Action.CALL)
 
     def _draw_raise(self, max_raise, dif):
-        self.raise_but = tkinter.Button(
+        self._raise_but = tkinter.Button(
             self._window, height=3, width=10, bd=0,
             bg='#F2F5A9', activebackground='black', command=self._raise_react,
             text='raise', fg='black', activeforeground='white')
-        self.raise_but.place(anchor='n', x=325, y=343)
+        self._raise_but.place(anchor='n', x=325, y=343)
         self.raise_num = self._pict.create_rectangle(380, 343, 450, 394, fill='#F2F5A9', outline='#F2F5A9', tag='raise_num')
         self._pict.create_text(400, 358, text='max:', anchor='s', tag='raise_num')
         self._pict.create_text(430, 358, text=str(max_raise), anchor='s', tag='raise_num')
         self._pict.create_text(400, 394, text='min:', anchor='s', tag='raise_num')
         self._pict.create_text(430, 394, text=str(dif + 1), anchor='s', tag='raise_num')
-        self.raise_ent = tkinter.Entry(self._window, width=5, bd=1)
-        self.raise_ent.place(anchor='s', x=418, y=379)
+        self._raise_ent = tkinter.Entry(self._window, width=5, bd=1)
+        self._raise_ent.place(anchor='s', x=418, y=379)
         self._pict.tag_bind('raise_num', '<Enter>', self._change_raise_collor)
         self._pict.tag_bind('raise_num', '<Leave>', self._change_raise_collor)
-        self.raise_ent.bind('<Enter>', self._change_raise_num_collor)
-        self.raise_ent.bind('<Leave>', self._change_raise_num_collor)
+        self._raise_ent.bind('<Enter>', self._change_raise_num_collor)
+        self._raise_ent.bind('<Leave>', self._change_raise_num_collor)
 
     def _change_raise_collor(self, event):
-        self.raise_but['bg'] = '#F4FA58' if event.type == '7' else '#F2F5A9'
+        self._raise_but['bg'] = '#F4FA58' if event.type == '7' else '#F2F5A9'
 
     def _change_raise_num_collor(self, event):
         self._pict.itemconfig(
@@ -268,7 +282,7 @@ class DrawGameGUI:
 
     def _raise_react(self):
         try:
-            bet = int(self.raise_ent.get())
+            bet = int(self._raise_ent.get())
             self._destroy_buttons()
             self._action(Player.Action.RAISE, bet)
         except ValueError:
@@ -289,10 +303,10 @@ class DrawGameGUI:
 
     def _destroy_buttons(self):
         try:
-            self.cll_chk_but.destroy()
-            self.fold_but.destroy()
-            self.raise_but.destroy()
-            self.raise_ent.destroy()
+            self._cll_chk_but.destroy()
+            self._fold_but.destroy()
+            self._raise_but.destroy()
+            self._raise_ent.destroy()
             self._pict.delete('raise_num')
         except AttributeError:
             pass
@@ -300,16 +314,19 @@ class DrawGameGUI:
 
     def _draw_distr_cards(self, context):
         if context.stage_name is Game.Stage.PRE_FLOP:
-            for player_data in context.players.values():
-                self._draw_hand_cards(player_data)
+            for identifier, player_data in context.players.items():
+                self._draw_hand_cards(identifier, player_data)
         else:
             self._draw_table_card(context.table, context.stage_name)
 
 
 class ComputerActions:
     def _computer_bet(self, factor, context):
-        bet = factor * (context.players["current"]["dif"] or int(context.bank / 4))
-        return bet if bet < context.players["current"]["chips"] else context.players["current"]["chips"]
+        bet = factor * (context.players[context.current_player]["dif"] or int(context.bank / 4))
+        return \
+            bet \
+            if bet < context.players[context.current_player]["chips"] else \
+            context.players[context.current_player]["chips"]
 
     def _computer_percent(self, cof, bot, flat):
         if cof <= 1:
@@ -323,8 +340,8 @@ class ComputerActions:
         return 0.9
 
     def _computer_action(self, context):
-        hand_range = hands_range[context.players["current"]["hand_type"]]
-        cof = context.players["current"]["dif"] / context.players["current"]["round_bets"]
+        hand_range = hands_range[context.players[context.current_player]["hand_type"]]
+        cof = context.players[context.current_player]["dif"] / context.players[context.current_player]["round_bets"]
         top, bot, agr_bot, agr_mid = 0.9, 0.7, 0.6, 0.8
         flat = top - bot
         if context.stage_name is Game.Stage.PRE_FLOP:
@@ -341,7 +358,11 @@ class ComputerActions:
                 else:
                     return (Player.Action.CHECK,)
         else:
-            combo = Combo(table=Table(cards=context.table), hand=Hand(cards=context.players["current"]["cards"]), nominal_check=True)
+            combo = Combo(
+                table=Table(cards=context.table),
+                hand=Hand(cards=context.players[context.current_player]["cards"]),
+                nominal_check=True,
+            )
             if cof:
                 if combo.type > Combo.TWO_PAIRS and not combo.is_nominal:
                     return Player.Action.RAISE, self._computer_bet(3, context)
@@ -373,14 +394,6 @@ class GameGUI(DrawGameGUI, ComputerActions, ShellPrint):
         self._new_round()
         self._window.mainloop()
 
-    def _new_round(self):
-        context = self._game.new_round()
-        if context.success:
-            self._refresh_table()
-            self._new_stage()
-        else:
-            print("ERROR", context.description)
-
     def _pre_new_round(self, context):
         if context.state is Game.ALL_IN:
             self._draw_distr_cards(context)
@@ -388,31 +401,44 @@ class GameGUI(DrawGameGUI, ComputerActions, ShellPrint):
         self._draw_buttons(point=context.point)
         self._shell_show(context)
 
+    def _new_round(self):
+        if self._game.new_round().success:
+            self._refresh_table()
+            self._new_stage()
+        else:
+            print("ERROR", context.description)
+
+    def _pre_new_stage(self, context):
+        if context.state is Game.ALL_IN:
+            self._draw_distr_cards(context)
+        if context.state is Game.ALL_IN or context.current_player is "Computer":
+            self._print_info(context.players, context.state, context.bank, context.result)
+            self._draw_buttons(point=context.point)
+            self._shell_show(context)
+        else:
+            self._new_stage()
+
     def _new_stage(self):
         self._destroy_buttons()
         context = self._game.new_stage()
         self._reflect(context)
 
-    def _pre_new_stage(self, context):
-        if context.state is Game.ALL_IN:
-            self._draw_distr_cards(context)
-        self._print_info(context.players, context.state, context.bank, context.result)
-        self._draw_buttons(point=context.point)
+    def _pre_action(self, context):
         self._shell_show(context)
+        if context.current_player is "Player":
+            if context.stage_depth == 0:
+                self._draw_distr_cards(context)
+            self._print_info(context.players, context.state, context.bank, context.result)
+            self._draw_buttons(
+                context.players[context.current_player]["abilities"],
+                context.players[context.current_player]["dif"],
+            )
+        else:
+            self._action(*self._computer_action(context))
 
     def _action(self, kind, bet=0):
         context = self._game.action(kind, bet)
         self._reflect(context)
-
-    def _pre_action(self, context):
-        self._shell_show(context)
-        if context.players["current"]["identifier"] is "Player":
-            if context.stage_depth in (0, 1):
-                self._draw_distr_cards(context)
-            self._print_info(context.players, context.state, context.bank, context.result)
-            self._draw_buttons(context.players["current"]["abilities"], context.players["current"]["dif"])
-        else:
-            self._action(*self._computer_action(context))
 
     def _reflect(self, context):
         if context.success:
