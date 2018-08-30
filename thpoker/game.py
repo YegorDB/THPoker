@@ -119,7 +119,7 @@ class Player:
         self.round_bets += bet
         self.stage_bets += bet
 
-    def _with_bet_action(bet, action_kind):
+    def _with_bet_action(self, bet, action_kind):
         if self.chips > bet:
             self.last_action = self.Action(action_kind, bet)
             self._betting(bet)
@@ -193,12 +193,16 @@ class Game:
         def _get_next_index(self):
             return self._curent_index + 1 if self._curent_index < len(self._involved_order) - 1 else 0
 
-        def next_player(self): # transition move rights
+        def next_player(self, after_fold=False): # transition move rights
             self._curent_index = self._get_next_index()
+            if after_fold:
+                self._involved_order.pop(self._curent_index)
+                if self._curent_index != 0:
+                    self._curent_index -= 1
             return self._curent_index
 
         def change_order(self):
-            self._order = self._order[1:] + self._order[0]
+            self._order = self._order[1:] + [self._order[0]]
             self._involved_order = self._order[:]
 
         def get_dif(self):
@@ -255,9 +259,8 @@ class Game:
             return len(tuple(filter(lambda p: p.with_allin, self)))
 
         def get_fold(self):
-            self._involved_order.pop(self._curent_index)
-            if len(self._involved_order) == 1:
-                self[self._involved_order[0]].get_chips(self.bank)
+            if len(self._involved_order) == 2:
+                self[abs(self._curent_index - 1)].get_chips(self.bank)
 
         def _get_result_rank(self, table):
             rank = {"winners": [], "loosers": []}
@@ -290,7 +293,7 @@ class Game:
                     looser.get_chips(over_bet)
                     data["loosers"][looser.identifier] -= over_bet
                 if not looser.chips:
-                    self._order.pop(self._order.index(self.index(looser)))
+                    self._order.pop(self._order.index(self._scroll.index(looser)))
             gain_bets = all_bets - winners_bets
             for winner in winners:
                 gain = winner.round_bets + int(gain_bets * winner.round_bets / winners_bets)
@@ -381,6 +384,7 @@ class Game:
                 self._players.current.chips and \
                     self._players.current.stage_bets < self._players.max_opponents_chips:
             self._players.get_dif()
+            self._players.current.get_abilities()
             return Context(
                 success=True,
                 description="Redy to accept action.",
@@ -410,7 +414,7 @@ class Game:
         if self._players.current.last_action.kind == Player.Action.FOLD:
             self._state = self.FOLD
             self._players.get_fold()
-            if self._players.involved_count == 1:
+            if self._players.involved_count == 2:
                 return self._stage_end()
         if self._players.current.last_action.kind == Player.Action.ALL_IN and self.global_allin:
             self._state = self.ALL_IN
@@ -437,7 +441,7 @@ class Game:
             point = self.THE_END
             description = "Game has been ended."
         elif self._state in (self.SHOW_DOWN, self.FOLD):
-            if self._stage.name == self.Stage.PRE_FLOP:
+            if self._players.rolling_count != 2 or self._stage.name == self.Stage.PRE_FLOP:
                 self._players.change_order()
             point = self.ROUND_NEEDED
             description = "Round has been ended."

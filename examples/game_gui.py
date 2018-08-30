@@ -65,7 +65,7 @@ class ShellPrint:
         return f"{str(cards)[1:-1].replace(' ', '')}"
 
     def _shell_show(self, context):
-        for player_data in context.players.values():
+        for identifier, player_data in context.players.items():
             inf = (
                 player_data["last_action"].kind[:3]
                 if player_data["last_action"] else
@@ -76,11 +76,11 @@ class ShellPrint:
                 self._str_num(player_data["stage_bets"]),
                 self._str_num(player_data["chips"]),
                 self._str_card(player_data["cards"])
-                if player_data["identifier"] is 'Player' or context.state is Game.SHOW_DOWN else
+                if identifier is 'Player' or context.state is Game.SHOW_DOWN else
                 '-----',
                 f'-{player_data["combo"].short_name if context.state is Game.SHOW_DOWN else "--"}-',
             )
-            if player_data["identifier"] is 'Player':
+            if identifier is 'Player':
                 player_info = f'|plr|{"|".join(inf)}'
             else:
                 opponent_info = f'|opp|{"|".join(inf)}'
@@ -169,7 +169,7 @@ class DrawGameGUI:
             else:
                 self._pict.itemconfig(self._opp_chips, text=str(player_data["chips"]))
                 self._pict.itemconfig(self._opp_bet, text=str(player_data["stage_bets"]))
-                if state is Game.SHOW_DOWN:
+                if state in (Game.SHOW_DOWN, Game.ALL_IN):
                     self._draw_hand_cards(identifier, player_data, distr=False)
                     self._pict.itemconfig(self._opp_combo, text=str(player_data["combo"]))
                 else:
@@ -253,7 +253,7 @@ class DrawGameGUI:
         self._destroy_buttons()
         self._action(Player.Action.CALL)
 
-    def _draw_raise(self, max_raise, dif):
+    def _draw_raise(self):
         self._raise_but = tkinter.Button(
             self._window, height=3, width=10, bd=0,
             bg='#F2F5A9', activebackground='black', command=self._raise_react,
@@ -261,9 +261,9 @@ class DrawGameGUI:
         self._raise_but.place(anchor='n', x=325, y=343)
         self.raise_num = self._pict.create_rectangle(380, 343, 450, 394, fill='#F2F5A9', outline='#F2F5A9', tag='raise_num')
         self._pict.create_text(400, 358, text='max:', anchor='s', tag='raise_num')
-        self._pict.create_text(430, 358, text=str(max_raise), anchor='s', tag='raise_num')
+        self._pict.create_text(430, 358, text=str(self._current_max_raise), anchor='s', tag='raise_num')
         self._pict.create_text(400, 394, text='min:', anchor='s', tag='raise_num')
-        self._pict.create_text(430, 394, text=str(dif + 1), anchor='s', tag='raise_num')
+        self._pict.create_text(430, 394, text=str(self._current_min_raise), anchor='s', tag='raise_num')
         self._raise_ent = tkinter.Entry(self._window, width=5, bd=1)
         self._raise_ent.place(anchor='s', x=418, y=379)
         self._pict.tag_bind('raise_num', '<Enter>', self._change_raise_collor)
@@ -280,14 +280,20 @@ class DrawGameGUI:
             fill='#F4FA58' if event.type == '7' else '#F2F5A9',
             outline='#F4FA58' if event.type == '7' else '#F2F5A9')
 
+    def _wrong_bet(self):
+        self._pict.itemconfig(self.raise_num, fill='red', outline='red')
+        self._window.focus()
+
     def _raise_react(self):
         try:
             bet = int(self._raise_ent.get())
-            self._destroy_buttons()
-            self._action(Player.Action.RAISE, bet)
+            if bet > self._current_max_raise or bet < self._current_min_raise:
+                self._wrong_bet()
+            else:
+                self._destroy_buttons()
+                self._action(Player.Action.RAISE, bet)
         except ValueError:
-            self._pict.itemconfig(self.raise_num, fill='red', outline='red')
-            self._window.focus()
+            self._wrong_bet()
 
     def _draw_buttons(self, abilities=None, dif=None, point=None):
         if abilities:
@@ -297,7 +303,9 @@ class DrawGameGUI:
             else:
                 self._draw_callcheck('call', self._call_react)
             if abilities[Player.Action.RAISE]:
-                self._draw_raise(abilities[Player.Action.RAISE], dif)
+                self._current_max_raise = abilities[Player.Action.RAISE]
+                self._current_min_raise = dif + 1
+                self._draw_raise()
         else:
             self._draw_callcheck('ok', self._new_parts[point])
 
@@ -390,13 +398,13 @@ class GameGUI(DrawGameGUI, ComputerActions, ShellPrint):
             Game.STAGE_NEEDED: self._new_stage,
             Game.ROUND_NEEDED: self._new_round,
         }
+        self._current_max_raise = chips
+        self._current_min_raise = 0
         self._get_window()
         self._new_round()
         self._window.mainloop()
 
     def _pre_new_round(self, context):
-        if context.state is Game.ALL_IN:
-            self._draw_distr_cards(context)
         self._print_info(context.players, context.state, context.bank, context.result)
         self._draw_buttons(point=context.point)
         self._shell_show(context)
