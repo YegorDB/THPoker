@@ -19,41 +19,97 @@ from thpoker.game import Player, Game
 from thpoker.core import Table, Hand, Combo
 
 
-hands_range = {
-    'AA': 1.0,'KK': 0.995475113122172,'QQ': 0.9909502262443439,'JJ': 0.9864253393665159,'TT': 0.9819004524886877,'99': 0.9773755656108597,
-    '88': 0.9728506787330317,'AKs': 0.9683257918552036,'AQs': 0.9653092006033183,'77': 0.9622926093514329,'AJs': 0.9577677224736049,
-    'AKo': 0.9547511312217195,'ATs': 0.9457013574660633,'AQo': 0.942684766214178,'AJo': 0.9336349924585219,'KQs': 0.9245852187028658,
-    '66': 0.9215686274509803,'A9s': 0.9170437405731523,'ATo': 0.9140271493212669,'KJs': 0.9049773755656109,'A8s': 0.9019607843137255,
-    'KTs': 0.8989441930618401,'KQo': 0.8959276018099548,'A7s': 0.8868778280542986,'A9o': 0.8838612368024132,'KJo': 0.8748114630467572,
-    '55': 0.8657616892911011,'QJs': 0.861236802413273,'K9s': 0.8582202111613876,'A6s': 0.8552036199095022,'A8o': 0.8521870286576169,
-    'A5s': 0.8431372549019608,'KTo': 0.8401206636500754,'QTs': 0.8310708898944194,'A4s': 0.8280542986425339,'A7o': 0.8250377073906485,
-    'K8s': 0.8159879336349924,'A3s': 0.8129713423831071,'QJo': 0.8099547511312217,'K9o': 0.8009049773755657,'A5o': 0.7918552036199095,
-    'A6o': 0.7828054298642534,'Q9s': 0.7737556561085973,'K7s': 0.770739064856712,'JTs': 0.7677224736048266,'A2s': 0.7647058823529411,
-    'QTo': 0.7616892911010558,'44': 0.7526395173453997,'A4o': 0.7481146304675717,'K6s': 0.7390648567119156,'Q8s': 0.7360482654600302,
-    'K8o': 0.7330316742081447,'A3o': 0.7239819004524887,'K5s': 0.7149321266968326,'J9s': 0.7119155354449472,'Q9o': 0.7088989441930619,
-    'JTo': 0.6998491704374057,'K7o': 0.6907993966817496,'K4s': 0.6817496229260935,'A2o': 0.6787330316742082,'Q7s': 0.669683257918552,
-    'K6o': 0.6666666666666666,'K3s': 0.6576168929110106,'J8s': 0.6546003016591252,'T9s': 0.6515837104072398,'33': 0.6485671191553545,
-    'Q6s': 0.6440422322775264,'Q8o': 0.6410256410256411,'K5o': 0.6319758672699849,'K2s': 0.6229260935143288,'J9o': 0.6199095022624435,
-    'Q5s': 0.6108597285067874,'J7s': 0.6078431372549019,'K4o': 0.6048265460030166,'T8s': 0.5957767722473605,'Q7o': 0.5927601809954751,
-    'Q4s': 0.583710407239819,'T9o': 0.5806938159879337,'J8o': 0.5716440422322775,'K3o': 0.5625942684766214,'Q6o': 0.5535444947209653,
-    'Q3s': 0.5444947209653092,'98s': 0.5414781297134238,'J6s': 0.5384615384615384,'T7s': 0.5354449472096531,'K2o': 0.5324283559577677,
-    '22': 0.5233785822021116,'Q5o': 0.5188536953242836,'Q2s': 0.5098039215686274,'J5s': 0.5067873303167421,'T8o': 0.5037707390648567,
-    'J7o': 0.4947209653092006,'Q4o': 0.4856711915535445,'97s': 0.4766214177978884,'J4s': 0.473604826546003,'T6s': 0.47058823529411764,
-    'Q3o': 0.4675716440422323,'J3s': 0.45852187028657615,'98o': 0.4555052790346908,'87s': 0.4464555052790347,'T7o': 0.4434389140271493,
-    'J6o': 0.4343891402714932,'96s': 0.4253393665158371,'J2s': 0.42232277526395173,'Q2o': 0.4193061840120664,'T5s': 0.41025641025641024,
-    'J5o': 0.4072398190045249,'T4s': 0.39819004524886875,'97o': 0.3951734539969834,'86s': 0.3861236802413273,'J4o': 0.38310708898944196,
-    'T6o': 0.3740573152337858,'95s': 0.3650075414781297,'T3s': 0.36199095022624433,'76s': 0.358974358974359,'J3o': 0.3559577677224736,
-    '87o': 0.3469079939668175,'T2s': 0.3378582202111614,'85s': 0.334841628959276,'96o': 0.33182503770739064,'J2o': 0.32277526395173456,
-    'T5o': 0.3137254901960784,'94s': 0.3046757164404223,'75s': 0.30165912518853694,'T4o': 0.2986425339366516,'86o': 0.2895927601809955,
-    '93s': 0.28054298642533937,'65s': 0.277526395173454,'84s': 0.27450980392156865,'95o': 0.27149321266968324,'T3o': 0.26244343891402716,
-    '92s': 0.25339366515837103,'76o': 0.25037707390648567,'74s': 0.24132730015082957,'T2o': 0.2383107088989442,'54s': 0.22926093514328807,
-    '64s': 0.22624434389140272,'85o': 0.22322775263951736,'83s': 0.21417797888386123,'94o': 0.21116138763197587,'75o': 0.20211161387631976,
-    '82s': 0.19306184012066366,'73s': 0.19004524886877827,'93o': 0.1870286576168929,'65o': 0.1779788838612368,'53s': 0.1689291101055807,
-    '63s': 0.16591251885369532,'84o': 0.16289592760180996,'92o': 0.15384615384615385,'43s': 0.14479638009049775,'74o': 0.14177978883861236,
-    '72s': 0.13273001508295626,'54o': 0.1297134238310709,'64o': 0.12066365007541478,'52s': 0.11161387631975868,'62s': 0.1085972850678733,
-    '83o': 0.10558069381598793,'82o': 0.09653092006033183,'42s': 0.08748114630467571,'73o': 0.08446455505279035,'53o': 0.07541478129713423,
-    '63o': 0.06636500754147813,'32s': 0.05731523378582202,'43o': 0.05429864253393665,'72o': 0.04524886877828054,'52o': 0.03619909502262444,
-    '62o': 0.027149321266968326,'42o': 0.01809954751131222,'32o': 0.00904977375565611,}
+class ComputerAction:
+    HANDS_RANGE = {
+        'AA': 1.0,'KK': 0.995475113122172,'QQ': 0.9909502262443439,'JJ': 0.9864253393665159,'TT': 0.9819004524886877,'99': 0.9773755656108597,
+        '88': 0.9728506787330317,'AKs': 0.9683257918552036,'AQs': 0.9653092006033183,'77': 0.9622926093514329,'AJs': 0.9577677224736049,
+        'AKo': 0.9547511312217195,'ATs': 0.9457013574660633,'AQo': 0.942684766214178,'AJo': 0.9336349924585219,'KQs': 0.9245852187028658,
+        '66': 0.9215686274509803,'A9s': 0.9170437405731523,'ATo': 0.9140271493212669,'KJs': 0.9049773755656109,'A8s': 0.9019607843137255,
+        'KTs': 0.8989441930618401,'KQo': 0.8959276018099548,'A7s': 0.8868778280542986,'A9o': 0.8838612368024132,'KJo': 0.8748114630467572,
+        '55': 0.8657616892911011,'QJs': 0.861236802413273,'K9s': 0.8582202111613876,'A6s': 0.8552036199095022,'A8o': 0.8521870286576169,
+        'A5s': 0.8431372549019608,'KTo': 0.8401206636500754,'QTs': 0.8310708898944194,'A4s': 0.8280542986425339,'A7o': 0.8250377073906485,
+        'K8s': 0.8159879336349924,'A3s': 0.8129713423831071,'QJo': 0.8099547511312217,'K9o': 0.8009049773755657,'A5o': 0.7918552036199095,
+        'A6o': 0.7828054298642534,'Q9s': 0.7737556561085973,'K7s': 0.770739064856712,'JTs': 0.7677224736048266,'A2s': 0.7647058823529411,
+        'QTo': 0.7616892911010558,'44': 0.7526395173453997,'A4o': 0.7481146304675717,'K6s': 0.7390648567119156,'Q8s': 0.7360482654600302,
+        'K8o': 0.7330316742081447,'A3o': 0.7239819004524887,'K5s': 0.7149321266968326,'J9s': 0.7119155354449472,'Q9o': 0.7088989441930619,
+        'JTo': 0.6998491704374057,'K7o': 0.6907993966817496,'K4s': 0.6817496229260935,'A2o': 0.6787330316742082,'Q7s': 0.669683257918552,
+        'K6o': 0.6666666666666666,'K3s': 0.6576168929110106,'J8s': 0.6546003016591252,'T9s': 0.6515837104072398,'33': 0.6485671191553545,
+        'Q6s': 0.6440422322775264,'Q8o': 0.6410256410256411,'K5o': 0.6319758672699849,'K2s': 0.6229260935143288,'J9o': 0.6199095022624435,
+        'Q5s': 0.6108597285067874,'J7s': 0.6078431372549019,'K4o': 0.6048265460030166,'T8s': 0.5957767722473605,'Q7o': 0.5927601809954751,
+        'Q4s': 0.583710407239819,'T9o': 0.5806938159879337,'J8o': 0.5716440422322775,'K3o': 0.5625942684766214,'Q6o': 0.5535444947209653,
+        'Q3s': 0.5444947209653092,'98s': 0.5414781297134238,'J6s': 0.5384615384615384,'T7s': 0.5354449472096531,'K2o': 0.5324283559577677,
+        '22': 0.5233785822021116,'Q5o': 0.5188536953242836,'Q2s': 0.5098039215686274,'J5s': 0.5067873303167421,'T8o': 0.5037707390648567,
+        'J7o': 0.4947209653092006,'Q4o': 0.4856711915535445,'97s': 0.4766214177978884,'J4s': 0.473604826546003,'T6s': 0.47058823529411764,
+        'Q3o': 0.4675716440422323,'J3s': 0.45852187028657615,'98o': 0.4555052790346908,'87s': 0.4464555052790347,'T7o': 0.4434389140271493,
+        'J6o': 0.4343891402714932,'96s': 0.4253393665158371,'J2s': 0.42232277526395173,'Q2o': 0.4193061840120664,'T5s': 0.41025641025641024,
+        'J5o': 0.4072398190045249,'T4s': 0.39819004524886875,'97o': 0.3951734539969834,'86s': 0.3861236802413273,'J4o': 0.38310708898944196,
+        'T6o': 0.3740573152337858,'95s': 0.3650075414781297,'T3s': 0.36199095022624433,'76s': 0.358974358974359,'J3o': 0.3559577677224736,
+        '87o': 0.3469079939668175,'T2s': 0.3378582202111614,'85s': 0.334841628959276,'96o': 0.33182503770739064,'J2o': 0.32277526395173456,
+        'T5o': 0.3137254901960784,'94s': 0.3046757164404223,'75s': 0.30165912518853694,'T4o': 0.2986425339366516,'86o': 0.2895927601809955,
+        '93s': 0.28054298642533937,'65s': 0.277526395173454,'84s': 0.27450980392156865,'95o': 0.27149321266968324,'T3o': 0.26244343891402716,
+        '92s': 0.25339366515837103,'76o': 0.25037707390648567,'74s': 0.24132730015082957,'T2o': 0.2383107088989442,'54s': 0.22926093514328807,
+        '64s': 0.22624434389140272,'85o': 0.22322775263951736,'83s': 0.21417797888386123,'94o': 0.21116138763197587,'75o': 0.20211161387631976,
+        '82s': 0.19306184012066366,'73s': 0.19004524886877827,'93o': 0.1870286576168929,'65o': 0.1779788838612368,'53s': 0.1689291101055807,
+        '63s': 0.16591251885369532,'84o': 0.16289592760180996,'92o': 0.15384615384615385,'43s': 0.14479638009049775,'74o': 0.14177978883861236,
+        '72s': 0.13273001508295626,'54o': 0.1297134238310709,'64o': 0.12066365007541478,'52s': 0.11161387631975868,'62s': 0.1085972850678733,
+        '83o': 0.10558069381598793,'82o': 0.09653092006033183,'42s': 0.08748114630467571,'73o': 0.08446455505279035,'53o': 0.07541478129713423,
+        '63o': 0.06636500754147813,'32s': 0.05731523378582202,'43o': 0.05429864253393665,'72o': 0.04524886877828054,'52o': 0.03619909502262444,
+        '62o': 0.027149321266968326,'42o': 0.01809954751131222,'32o': 0.00904977375565611,}
+
+    def _get_bet(self, factor, context):
+        bet = factor * (context.players[context.current_player]["dif"] or int(context.bank / 4))
+        return \
+            bet \
+            if bet < context.players[context.current_player]["chips"] else \
+            context.players[context.current_player]["chips"]
+
+    def _get_percent(self, cof, bot, flat):
+        if cof <= 1:
+            return bot * cof
+        elif cof <= 2:
+            return bot + flat * 0.5 * (cof - 1)
+        elif cof <= 3:
+            return bot + flat * (0.25 + 0.5 * (cof - 2))
+        elif cof <= 4:
+            return bot + flat * (0.5 + 0.375 * (cof - 3))
+        return 0.9
+
+    def __call__(self, context):
+        hand_range = self.HANDS_RANGE[context.players[context.current_player]["hand_type"]]
+        cof = context.players[context.current_player]["dif"] / context.players[context.current_player]["round_bets"]
+        top, bot, agr_bot, agr_mid = 0.9, 0.7, 0.6, 0.8
+        flat = top - bot
+        if context.stage_name is Game.Stage.PRE_FLOP:
+            if cof:
+                if hand_range > top:
+                    return Player.Action.RAISE, self._get_bet(3, context)
+                if hand_range >= self._get_percent(cof, bot, flat):
+                    return (Player.Action.CALL,)
+                return (Player.Action.FOLD,)
+            else:
+                if hand_range >= agr_bot:
+                    factor = 3 if hand_range >= agr_mid else 2
+                    return Player.Action.RAISE, self._get_bet(factor, context)
+                else:
+                    return (Player.Action.CHECK,)
+        else:
+            combo = Combo(
+                table=Table(cards=context.table),
+                hand=Hand(cards=context.players[context.current_player]["cards"]),
+                nominal_check=True,
+            )
+            if cof:
+                if combo.type > Combo.TWO_PAIRS and not combo.is_nominal:
+                    return Player.Action.RAISE, self._get_bet(3, context)
+                elif combo.type > Combo.HIGH_CARD and not combo.is_nominal or 0.5 * (hand_range + random.random()) >= cof:
+                    return (Player.Action.CALL,)
+                else:
+                    return (Player.Action.FOLD,)
+            else:
+                if combo.type > Combo.HIGH_CARD and not combo.is_nominal:
+                    return Player.Action.RAISE, self._get_bet(3, context)
+                else:
+                    return (Player.Action.CHECK,)
 
 
 class ShellPrint:
@@ -170,10 +226,8 @@ class DrawGameGUI:
                     self._draw_hand_cards(identifier, player_data, distr=False)
                     if not state is Game.ALL_IN:
                         self._pict.itemconfig(self._opp_combo, text=str(player_data["combo"]))
-                else:
-                    self._pict.itemconfig(self._opp_combo, text='')
-                    if player_data["last_action"]:
-                        self._pict.itemconfig(self._info, text=f'Opponent has {player_data["last_action"].kind}') 
+                elif player_data["last_action"]:
+                    self._pict.itemconfig(self._info, text=f'Opponent has {player_data["last_action"].kind}') 
         self._pict.itemconfig(self._bank_vsl, text=str(bank))
 
     def _draw_card(self, card, x, y, dx, tag):
@@ -214,6 +268,8 @@ class DrawGameGUI:
         self._pict.delete('chand')
         self._pict.delete('table')
         self._pict.delete('phand')
+        self._pict.itemconfig(self._opp_combo, text='')
+        self._pict.itemconfig(self._plr_combo, text='')
 
     def _draw_fold(self):
         self._fold_but = tkinter.Button(
@@ -326,64 +382,7 @@ class DrawGameGUI:
             self._draw_table_card(context.table, context.stage_name)
 
 
-class ComputerActions:
-    def _computer_bet(self, factor, context):
-        bet = factor * (context.players[context.current_player]["dif"] or int(context.bank / 4))
-        return \
-            bet \
-            if bet < context.players[context.current_player]["chips"] else \
-            context.players[context.current_player]["chips"]
-
-    def _computer_percent(self, cof, bot, flat):
-        if cof <= 1:
-            return bot * cof
-        elif cof <= 2:
-            return bot + flat * 0.5 * (cof - 1)
-        elif cof <= 3:
-            return bot + flat * (0.25 + 0.5 * (cof - 2)) 
-        elif cof <= 4:
-            return bot + flat * (0.5 + 0.375 * (cof - 3))
-        return 0.9
-
-    def _computer_action(self, context):
-        hand_range = hands_range[context.players[context.current_player]["hand_type"]]
-        cof = context.players[context.current_player]["dif"] / context.players[context.current_player]["round_bets"]
-        top, bot, agr_bot, agr_mid = 0.9, 0.7, 0.6, 0.8
-        flat = top - bot
-        if context.stage_name is Game.Stage.PRE_FLOP:
-            if cof:
-                if hand_range > top:
-                    return Player.Action.RAISE, self._computer_bet(3, context)
-                if hand_range >= self._computer_percent(cof, bot, flat):
-                    return (Player.Action.CALL,)
-                return (Player.Action.FOLD,)
-            else:
-                if hand_range >= agr_bot:
-                    factor = 3 if hand_range >= agr_mid else 2
-                    return Player.Action.RAISE, self._computer_bet(factor, context)
-                else:
-                    return (Player.Action.CHECK,)
-        else:
-            combo = Combo(
-                table=Table(cards=context.table),
-                hand=Hand(cards=context.players[context.current_player]["cards"]),
-                nominal_check=True,
-            )
-            if cof:
-                if combo.type > Combo.TWO_PAIRS and not combo.is_nominal:
-                    return Player.Action.RAISE, self._computer_bet(3, context)
-                elif combo.type > Combo.HIGH_CARD and not combo.is_nominal or 0.5 * (hand_range + random.random()) >= cof:
-                    return (Player.Action.CALL,)
-                else:
-                    return (Player.Action.FOLD,)
-            else:
-                if combo.type > Combo.HIGH_CARD and not combo.is_nominal:
-                    return Player.Action.RAISE, self._computer_bet(3, context)
-                else:
-                    return (Player.Action.CHECK,)
-
-
-class GameGUI(DrawGameGUI, ComputerActions, ShellPrint):
+class GameGUI(DrawGameGUI, ShellPrint):
     def __init__(self, chips=1000, blindes=[10, 20]):
         self._game = Game({"chips": chips, "blindes": blindes}, Player("Player"), Player("Computer"))
         self._reflections = {
@@ -398,6 +397,7 @@ class GameGUI(DrawGameGUI, ComputerActions, ShellPrint):
         }
         self._current_max_raise = chips
         self._current_min_raise = 0
+        self._computer_action = ComputerAction()
         self._get_window()
         self._new_round()
         self._window.mainloop()

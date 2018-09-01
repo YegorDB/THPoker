@@ -19,7 +19,7 @@ from thpoker.core import Deck, Table, Hand, Combo
 
 
 class Context:
-    def __init__(self, success, description, **data):
+    def __init__(self, success, description="", **data):
         self.success = success
         self.description = description
         self.add_data(**data)
@@ -102,8 +102,8 @@ class Player:
             self.abilities[self.Action.CALL] = 0
             self.abilities[self.Action.CHECK] = True
 
-    def get_dif(self, max_round_bets):
-        self.dif = max_round_bets - self.round_bets
+    def get_dif(self, max_round_bet):
+        self.dif = max_round_bet - self.round_bets
 
     def action(self, kind, bet):
         if kind not in self.Action.OUTSIDE_AVAILABLE:
@@ -163,6 +163,7 @@ class Game:
             self._order = self._get_order(len(players))
             self._involved_order = self._order[:]
             self._curent_index = 0 # active player's index
+            self._max_round_bet = 0
             for player in self:
                 player.get_chips(chips)
 
@@ -175,6 +176,7 @@ class Game:
         def new_round(self):
             for player in self:
                 player.new_round()
+            self._max_round_bet = 0
 
         def new_stage(self):
             for player in self:
@@ -183,8 +185,21 @@ class Game:
 
         def action(self, kind, bet):
             for player in self:
-                player.refresh_last_action() # really need?
-            return self.current.action(kind, bet)
+                player.refresh_last_action()
+            context = self.current.action(kind, bet)
+            if context.success and self.current.round_bets > self._max_round_bet:
+                self._max_round_bet = self.current.round_bets
+            return context
+
+        def get_blindes(self, small_blind, big_blind):
+            self._curent_index = self.involved_count - 2
+            context = self.action(Player.Action.BLIND_BET, small_blind)
+            if not context.success:
+                return context
+            self._curent_index = self.involved_count - 1
+            context = self.action(Player.Action.BLIND_BET, big_blind)
+            self._curent_index = 0
+            return context
 
         @property
         def current(self): # active player
@@ -206,20 +221,18 @@ class Game:
             self._involved_order = self._order[:]
 
         def get_dif(self):
-            max_round_bets = max([player.round_bets for player in self])
-            self.current.get_dif(max_round_bets)
+            self.current.get_dif(self._max_round_bet)
 
         @property
         def have_dif(self):
-            max_round_bets = max([player.round_bets for player in self])
             next_index = self._get_next_index()
-            self[next_index].get_dif(max_round_bets)
+            self[next_index].get_dif(self._max_round_bet)
             if self[next_index].dif and self[next_index].chips:
                 return True
             for index in self._involved_order:
                 if index in (self._curent_index, next_index):
                     continue
-                self[index].get_dif(max_round_bets)
+                self[index].get_dif(self._max_round_bet)
                 if self[index].dif and self[index].chips:
                     return True
             return False
@@ -255,8 +268,15 @@ class Game:
             return len(self._involved_order)
 
         @property
-        def with_allin_count(self):
-            return len(tuple(filter(lambda p: p.with_allin, self)))
+        def global_allin(self):
+            not_in_allin_players = tuple(filter(lambda p: not p.with_allin, self))
+            not_in_allin_players_count = len(not_in_allin_players)
+            if not_in_allin_players_count == 0:
+                return True
+            elif not_in_allin_players_count == 1:
+                not_in_allin_players[0].get_dif(self._max_round_bet)
+                return not_in_allin_players[0].dif == 0
+            return False
 
         def get_fold(self):
             if len(self._involved_order) == 2:
@@ -353,10 +373,6 @@ class Game:
         self._deck = Deck()
         self._result = None
 
-    @property
-    def global_allin(self):
-        return self._players.involved_count <= self._players.with_allin_count + 1
-
     def new_round(self):
         if self._state == self.THE_END:
             return Context(success=False, description="Game over.", **self._get_context_data(self.THE_END))
@@ -378,7 +394,9 @@ class Game:
         self._players.new_stage()
         if self._players.rolling_count == 2 and self._stage.name == self.Stage.FLOP:
             self._players.change_order()
-        self._distribution()
+        context = self._distribution()
+        if not context.success:
+            return context
         if self._state != self.ALL_IN or \
             self._stage.name == self.Stage.PRE_FLOP and \
                 self._players.current.chips and \
@@ -395,17 +413,14 @@ class Game:
 
     def _distribution(self):
         if self._stage.name == self.Stage.PRE_FLOP:
-            self._get_blindes()
+            context = self._players.get_blindes(*self._blindes)
+            if self._players.global_allin:
+                self._state = self.ALL_IN
             self._players.get_cards(self._deck)
         else:
             self._table.pull_to(self._deck, self._stage.table_size)
-
-    def _get_blindes(self):
-        for bet, index in zip(self._blindes, (-2, -1)):
-            player = self._players[index]
-            player.action(Player.Action.BLIND_BET, bet)
-            if player.last_action.kind == Player.Action.ALL_IN and self.global_allin:
-                self._state = self.ALL_IN
+            context = Context(success=True)
+        return context
 
     def action(self, kind, bet=0):
         action_result = self._players.action(kind, bet)
@@ -416,7 +431,7 @@ class Game:
             self._players.get_fold()
             if self._players.involved_count == 2:
                 return self._stage_end()
-        if self._players.current.last_action.kind == Player.Action.ALL_IN and self.global_allin:
+        if self._players.current.last_action.kind == Player.Action.ALL_IN and self._players.global_allin:
             self._state = self.ALL_IN
         if self._players.have_dif or not self._players.current_is_last and self._stage.depth_count == 0:
             current_index = self._players.next_player()
