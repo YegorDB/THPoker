@@ -76,7 +76,7 @@ class ShellPrint:
                 self._str_num(player_data["stage_bets"]),
                 self._str_num(player_data["chips"]),
                 self._str_card(player_data["cards"])
-                if identifier is 'Player' or context.state is Game.SHOW_DOWN else
+                if identifier is 'Player' or context.state in (Game.SHOW_DOWN, Game.ALL_IN, Game.THE_END) else
                 '-----',
                 f'-{player_data["combo"].short_name if context.state is Game.SHOW_DOWN else "--"}-',
             )
@@ -127,20 +127,20 @@ class DrawGameGUI:
         self._pict.create_rectangle(15, 10, 385, 60, fill='#A9D0F5', outline='#A9D0F5')
         self._pict.create_rectangle(400, 135, 510, 265, fill='#A9D0F5', outline='#A9D0F5')
         for n in (0, 1):
-            self._pict.create_rectangle(400, 80+n*195, 510, 125+n*195, fill='#A9D0F5', outline='#A9D0F5')
+            self._pict.create_rectangle(40, 65+n*250, 360, 85+n*250, fill='#A9D0F5', outline='#A9D0F5')
             self._pict.create_line(403, 185+n*30, 500, 185+n*30, width=1, fill='gray')
-            self._pict.create_text(450, 100+n*195, text='Combination:', anchor='s')
+            self._pict.create_text(55, 77+n*250, text='Combination:', anchor='w')
             self._pict.create_text(425, 160+n*100, text='Chips:', anchor='s')
             self._pict.create_text(425, 180+n*60, text='Bet:', anchor='s')
         self._pict.create_text(425, 210, text='Bank:', anchor='s')
         self._info = self._pict.create_text(200, 50, text='', anchor='s', font="Arial 24")
-        self._opp_combo = self._pict.create_text(450, 120, text='', anchor='s')
+        self._opp_combo = self._pict.create_text(140, 77, text='', anchor='w')
         self._opp_chips = self._pict.create_text(475, 160, text='', anchor='s')
         self._opp_bet = self._pict.create_text(475, 180, text='', anchor='s')
         self._bank_vsl = self._pict.create_text(475, 210, text='', anchor='s')
         self._plr_bet = self._pict.create_text(475, 240, text='', anchor='s')
         self._plr_chips = self._pict.create_text(475, 260, text='', anchor='s')
-        self._plr_combo = self._pict.create_text(450, 315, text='', anchor='s')
+        self._plr_combo = self._pict.create_text(140, 327, text='', anchor='w')
         # table
         self._pict.create_rectangle(125, 90, 275, 310, fill='#B45F04', outline='#B45F04')
         self._pict.create_arc(165, 90, 385, 310, start=270, extent=180, fill='#B45F04', outline='#B45F04')
@@ -154,8 +154,7 @@ class DrawGameGUI:
             if identifier is "Player":
                 self._pict.itemconfig(self._plr_chips, text=str(player_data["chips"]))
                 self._pict.itemconfig(self._plr_bet, text=str(player_data["stage_bets"]))
-                if state is Game.SHOW_DOWN:
-                    combo_name = str(player_data["combo"])
+                if state in (Game.SHOW_DOWN, Game.THE_END):
                     if not result["loosers"]:
                         result_name = "draw"
                     elif identifier in result["winners"]:
@@ -163,15 +162,14 @@ class DrawGameGUI:
                     else:
                         result_name = "lose"
                     self._pict.itemconfig(self._info, text=result_name)
-                else:
-                    combo_name = ""
-                self._pict.itemconfig(self._plr_combo, text=combo_name)
+                    self._pict.itemconfig(self._plr_combo, text=str(player_data["combo"]))
             else:
                 self._pict.itemconfig(self._opp_chips, text=str(player_data["chips"]))
                 self._pict.itemconfig(self._opp_bet, text=str(player_data["stage_bets"]))
-                if state in (Game.SHOW_DOWN, Game.ALL_IN):
+                if state in (Game.SHOW_DOWN, Game.ALL_IN, Game.THE_END):
                     self._draw_hand_cards(identifier, player_data, distr=False)
-                    self._pict.itemconfig(self._opp_combo, text=str(player_data["combo"]))
+                    if not state is Game.ALL_IN:
+                        self._pict.itemconfig(self._opp_combo, text=str(player_data["combo"]))
                 else:
                     self._pict.itemconfig(self._opp_combo, text='')
                     if player_data["last_action"]:
