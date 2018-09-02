@@ -16,6 +16,7 @@
 import random
 
 from thpoker.core import Deck, Table, Hand, Combo
+from thpoker.validators import PlayerActionValidator
 
 
 class Context:
@@ -42,7 +43,9 @@ class Player:
         OUTSIDE_AVAILABLE = (BLIND_BET, CALL, CHECK, FOLD, RAISE)
         ALLWAYS_ACCEPTED = (BLIND_BET, FOLD)
         WITH_BET = (BLIND_BET, RAISE)
+        ALL_KINDS = (ALL_IN, BLIND_BET, CALL, CHECK, FOLD, RAISE)
 
+        @PlayerActionValidator(ALL_KINDS)
         def __init__(self, kind, bet=0):
             self.kind = kind
             self.bet = bet

@@ -71,3 +71,13 @@ class ComboArgumentsError(Exception):
         'table' and 'hand' and 'nominal_check_needed'
         (example: Combo(table=Table('As/Ks/Qs'), hand=Hand('Js/Ts'), nominal_check_needed=True)."""
         super().__init__(hint)
+
+
+class PlayerActionKindError(Exception):
+    def __init__(self, kind):
+        super().__init__(f"'{str(kind)}' is not a legal action kind. Try one of thpoker.game.Player.Action.ALL_KINDS.")
+
+
+class PlayerActionBetError(Exception):
+    def __init__(self, bet):
+        super().__init__(f"'{str(bet)}' is not a legal action bet. It has to be positive integer.")

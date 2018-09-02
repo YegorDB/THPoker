@@ -13,16 +13,32 @@
 # limitations under the License.
 
 
+from thpoker import exceptions
+
+
 class CardSymbolValidator:
     def __init__(self, symbols, exception):
-        self.symbols = symbols
-        self.exception = exception
+        self._symbols = symbols
+        self._exception = exception
 
     def __call__(self, init_function):
         def wrap(init_self, symbol):
             symbol = str(symbol)
-            if symbol not in set(self.symbols):
-                raise self.exception(symbol)
+            if not symbol in set(self._symbols):
+                raise self._exception(symbol)
             init_function(init_self, symbol)
+        return wrap
 
+
+class PlayerActionValidator:
+    def __init__(self, all_kinds):
+        self._all_kinds = all_kinds
+
+    def __call__(self, init_function):
+        def wrap(init_self, kind, bet=0):
+            if not kind in self._all_kinds:
+                raise exceptions.PlayerActionKindError(kind)
+            if not type(bet) is int or bet < 0:
+                raise exceptions.PlayerActionBetError(kind)
+            init_function(init_self, symbol)
         return wrap
