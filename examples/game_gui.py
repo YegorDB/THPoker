@@ -56,12 +56,13 @@ class ComputerAction:
         '63o': 0.06636500754147813,'32s': 0.05731523378582202,'43o': 0.05429864253393665,'72o': 0.04524886877828054,'52o': 0.03619909502262444,
         '62o': 0.027149321266968326,'42o': 0.01809954751131222,'32o': 0.00904977375565611,}
 
-    def _get_bet(self, factor, context):
-        bet = factor * (context.players[context.current_player]["dif"] or int(context.bank / 4))
-        return \
-            bet \
-            if bet < context.players[context.current_player]["chips"] else \
-            context.players[context.current_player]["chips"]
+    def _get_raise(self, factor, context):
+        max_raise = context.players[context.current_player]["abilities"][Player.Action.RAISE]
+        if max_raise:
+            bet = factor * (context.players[context.current_player]["dif"] or int(context.bank / 4))
+            if bet < max_raise:
+                return bet
+        return max_raise
 
     def _get_percent(self, cof, bot, flat):
         if cof <= 1:
@@ -82,14 +83,16 @@ class ComputerAction:
         if context.stage_name is Game.Stage.PRE_FLOP:
             if cof:
                 if hand_range > top:
-                    return Player.Action.RAISE, self._get_bet(3, context)
+                    raise_value = self._get_raise(3, context)
+                    return (Player.Action.RAISE, raise_value) if raise_value else (Player.Action.CALL,)
                 if hand_range >= self._get_percent(cof, bot, flat):
                     return (Player.Action.CALL,)
                 return (Player.Action.FOLD,)
             else:
                 if hand_range >= agr_bot:
                     factor = 3 if hand_range >= agr_mid else 2
-                    return Player.Action.RAISE, self._get_bet(factor, context)
+                    raise_value = self._get_raise(factor, context)
+                    return (Player.Action.RAISE, raise_value) if raise_value else (Player.Action.CHECK,)
                 else:
                     return (Player.Action.CHECK,)
         else:
@@ -100,14 +103,16 @@ class ComputerAction:
             )
             if cof:
                 if combo.type > Combo.TWO_PAIRS and not combo.is_nominal:
-                    return Player.Action.RAISE, self._get_bet(3, context)
+                    raise_value = self._get_raise(3, context)
+                    return (Player.Action.RAISE, raise_value) if raise_value else (Player.Action.CALL,)
                 elif combo.type > Combo.HIGH_CARD and not combo.is_nominal or 0.5 * (hand_range + random.random()) >= cof:
                     return (Player.Action.CALL,)
                 else:
                     return (Player.Action.FOLD,)
             else:
                 if combo.type > Combo.HIGH_CARD and not combo.is_nominal:
-                    return Player.Action.RAISE, self._get_bet(3, context)
+                    raise_value = self._get_raise(3, context)
+                    return (Player.Action.RAISE, raise_value) if raise_value else (Player.Action.CHECK,)
                 else:
                     return (Player.Action.CHECK,)
 
@@ -413,10 +418,9 @@ class GameGUI(DrawGameGUI, ShellPrint):
             self._new_stage()
         else:
             print("ERROR", context.description)
+            print(context.__dict__)
 
     def _pre_new_stage(self, context):
-        if context.state is Game.ALL_IN:
-            self._draw_distr_cards(context)
         if context.state is Game.ALL_IN or context.current_player is "Computer":
             self._print_info(context.players, context.state, context.bank, context.result)
             self._draw_buttons(point=context.point)
@@ -427,13 +431,11 @@ class GameGUI(DrawGameGUI, ShellPrint):
     def _new_stage(self):
         self._destroy_buttons()
         context = self._game.new_stage()
-        self._reflect(context)
+        self._reflect(context, is_new_stage=True)
 
     def _pre_action(self, context):
         self._shell_show(context)
         if context.current_player is "Player":
-            if context.stage_depth == 0:
-                self._draw_distr_cards(context)
             self._print_info(context.players, context.state, context.bank, context.result)
             self._draw_buttons(
                 context.players[context.current_player]["abilities"],
@@ -446,15 +448,16 @@ class GameGUI(DrawGameGUI, ShellPrint):
         context = self._game.action(kind, bet)
         self._reflect(context)
 
-    def _reflect(self, context):
+    def _reflect(self, context, is_new_stage=False):
         if context.success:
+            if is_new_stage:
+                self._draw_distr_cards(context)
             self._reflections[context.point](context)
         else:
             print("ERROR", context.description)
+            print(context.__dict__)
 
     def _the_end(self, context):
-        if context.state is Game.ALL_IN:
-            self._draw_distr_cards(context)
         self._print_info(context.players, context.state, context.bank, context.result)
         self._shell_show(context)
 
