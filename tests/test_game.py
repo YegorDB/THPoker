@@ -31,3 +31,15 @@ class TestPlayerAction:
             Player.Action(kind=Player.Action.CHECK, bet="123")
         with pytest.raises(PlayerActionBetError):
             Player.Action(kind=Player.Action.CALL, bet=-123)
+
+
+class TestPlayer:
+    def test_get_chips(self):
+        player = Player("Johny")
+        assert player.chips_count == 0
+        player.get_chips(50)
+        assert player.chips_count == 50
+        player.get_chips(100)
+        assert player.chips_count == 150
+        player.get_chips(250)
+        assert player.chips_count == 400

@@ -31,8 +31,27 @@ class Context:
 
 
 class Player:
+    """
+    Player activity class.
+
+    Takes one argument: any usefull identifier (wich can help distinguish this one player from other). Identifier need to provide __hash__ method.
+    For example:
+        by string - Player('asdfg');
+        by number - Player(12345).
+    """
 
     class Action:
+        """
+        Any player's action.
+
+        There are six kinds of action: fold (Action.FOLD); call (Action.CALL); check (Action.CHECK); raise (Action.RAISE); blind bet (Action.BLIND_BET); all-in (Action.ALL_IN).
+
+        Takes two argumens: action kind and bet value (second one is used only in raise or blind bet kind of situation).
+        For example:
+            20 chips raise looks like Action(Action.RAISE, 20);
+            call looks like Action(Action.CALL).
+        """
+
         ALL_IN = 'all-in'
         BLIND_BET = 'blind_bet'
         CALL = 'call'
@@ -56,7 +75,7 @@ class Player:
 
     def __init__(self, identifier):
         self.identifier = identifier
-        self.chips = 0
+        self._chips = 0
         self.round_bets = 0
         self.stage_bets = 0
         self.last_action = None
@@ -75,8 +94,12 @@ class Player:
         self.hand = Hand()
         self.with_allin = False
 
+    @property
+    def chips_count(self):
+        return self._chips
+
     def get_chips(self, chips):
-        self.chips += chips
+        self._chips += chips
 
     def get_combo(self, table):
         self.combo = Combo(table=table, hand=self.hand)
@@ -97,9 +120,9 @@ class Player:
         self.last_action = None
 
     def get_abilities(self):
-        self.abilities[self.Action.RAISE] = self.chips if self.chips > self.dif else 0
+        self.abilities[self.Action.RAISE] = self._chips if self._chips > self.dif else 0
         if self.dif:
-            self.abilities[self.Action.CALL] = self.chips if self.dif >= self.chips else self.dif
+            self.abilities[self.Action.CALL] = self._chips if self.dif >= self._chips else self.dif
             self.abilities[self.Action.CHECK] = False
         else:
             self.abilities[self.Action.CALL] = 0
@@ -118,12 +141,12 @@ class Player:
         return Context(success=True, description="Successfully moved.")
 
     def _betting(self, bet):
-        self.chips -= bet
+        self._chips -= bet
         self.round_bets += bet
         self.stage_bets += bet
 
     def _with_bet_action(self, bet, action_kind):
-        if self.chips > bet:
+        if self._chips > bet:
             self.last_action = self.Action(action_kind, bet)
             self._betting(bet)
         else:
@@ -145,8 +168,8 @@ class Player:
         self.last_action = self.Action(self.Action.FOLD)
 
     def _all_in(self):
-        self.last_action = self.Action(self.Action.ALL_IN, self.chips)
-        self._betting(self.chips)
+        self.last_action = self.Action(self.Action.ALL_IN, self._chips)
+        self._betting(self._chips)
         self.with_allin = True
 
 
@@ -230,13 +253,13 @@ class Game:
         def have_dif(self):
             next_index = self._get_next_index()
             self[next_index].get_dif(self._max_round_bet)
-            if self[next_index].dif and self[next_index].chips:
+            if self[next_index].dif and self[next_index].chips_count:
                 return True
             for index in self._involved_order:
                 if index in (self._curent_index, next_index):
                     continue
                 self[index].get_dif(self._max_round_bet)
-                if self[index].dif and self[index].chips:
+                if self[index].dif and self[index].chips_count:
                     return True
             return False
 
@@ -258,8 +281,8 @@ class Game:
             for index in self._involved_order:
                 if index == self._curent_index:
                     continue
-                if self[index].chips > max_chips:
-                    max_chips = self[index].chips
+                if self[index].chips_count > max_chips:
+                    max_chips = self[index].chips_count
             return max_chips
 
         @property
@@ -315,7 +338,7 @@ class Game:
                     all_bets -= over_bet
                     looser.get_chips(over_bet)
                     data["loosers"][looser.identifier] -= over_bet
-                if not looser.chips:
+                if not looser.chips_count:
                     self._order.pop(self._order.index(self._scroll.index(looser)))
             gain_bets = all_bets - winners_bets
             for winner in winners:
@@ -402,7 +425,7 @@ class Game:
             return context
         if self._state != self.ALL_IN or \
             self._stage.name == self.Stage.PRE_FLOP and \
-                self._players.current.chips and \
+                self._players.current.chips_count and \
                     self._players.current.stage_bets < self._players.max_opponents_chips:
             self._players.get_dif()
             self._players.current.get_abilities()
@@ -484,7 +507,7 @@ class Game:
                 "current_player": self._players.current.identifier,
                 "players": {
                     player.identifier: {
-                        "chips": player.chips,
+                        "chips": player.chips_count,
                         "stage_bets": player.stage_bets,
                         "round_bets": player.round_bets,
                         "dif": player.dif,
