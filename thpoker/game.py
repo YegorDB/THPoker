@@ -20,6 +20,8 @@ from thpoker.validators import PlayerActionValidator
 
 
 class Context:
+    """Class to state data exchange."""
+
     def __init__(self, success, description="", **data):
         self.success = success
         self.description = description
@@ -75,17 +77,17 @@ class Player:
 
     def __init__(self, identifier):
         self.identifier = identifier
-        self._chips = 0
+        self.chips = 0
         self.round_bets = 0
         self.stage_bets = 0
         self.last_action = None
         self.abilities = {
-            self.Action.RAISE: 0,
+            self.Action.RAISE: {"min": 0, "max": 0},
             self.Action.CALL: 0,
             self.Action.CHECK: False,
         }
         self.has_ability = {
-            self.Action.RAISE: lambda bet: self.abilities[self.Action.RAISE] >= bet,
+            self.Action.RAISE: lambda bet: self.abilities[self.Action.RAISE]["min"] <= bet and self.abilities[self.Action.RAISE]["max"] >= bet,
             self.Action.CALL: lambda: self.abilities[self.Action.CALL] > 0,
             self.Action.CHECK: lambda: self.abilities[self.Action.CHECK],
         }
@@ -94,42 +96,24 @@ class Player:
         self.hand = Hand()
         self.with_allin = False
 
-    @property
-    def chips_count(self):
-        return self._chips
-
     def get_chips(self, chips):
-        self._chips += chips
+        self.chips += chips
 
     def get_combo(self, table):
         self.combo = Combo(table=table, hand=self.hand)
         return self.combo
 
-    def new_round(self):
-        self.round_bets = 0
-        self.combo = None
-        self.hand.clean()
-        self.with_allin = False
-
-    def new_stage(self):
-        self.stage_bets = 0
-        self.dif = 0
-        self.refresh_last_action()
-
-    def refresh_last_action(self):
-        self.last_action = None
+    def get_dif(self, max_round_bet):
+        self.dif = max_round_bet - self.round_bets
 
     def get_abilities(self):
-        self.abilities[self.Action.RAISE] = self._chips if self._chips > self.dif else 0
+        self.abilities[self.Action.RAISE] = {"min": self.dif + 1, "max": self.chips} if self.chips > self.dif else {"min": 0, "max": 0}
         if self.dif:
-            self.abilities[self.Action.CALL] = self._chips if self.dif >= self._chips else self.dif
+            self.abilities[self.Action.CALL] = self.chips if self.dif >= self.chips else self.dif
             self.abilities[self.Action.CHECK] = False
         else:
             self.abilities[self.Action.CALL] = 0
             self.abilities[self.Action.CHECK] = True
-
-    def get_dif(self, max_round_bet):
-        self.dif = max_round_bet - self.round_bets
 
     def action(self, kind, bet):
         if kind not in self.Action.OUTSIDE_AVAILABLE:
@@ -140,13 +124,8 @@ class Player:
         getattr(self, f"_{kind}")(*args)
         return Context(success=True, description="Successfully moved.")
 
-    def _betting(self, bet):
-        self._chips -= bet
-        self.round_bets += bet
-        self.stage_bets += bet
-
     def _with_bet_action(self, bet, action_kind):
-        if self._chips > bet:
+        if self.chips > bet:
             self.last_action = self.Action(action_kind, bet)
             self._betting(bet)
         else:
@@ -168,9 +147,27 @@ class Player:
         self.last_action = self.Action(self.Action.FOLD)
 
     def _all_in(self):
-        self.last_action = self.Action(self.Action.ALL_IN, self._chips)
-        self._betting(self._chips)
+        self.last_action = self.Action(self.Action.ALL_IN, self.chips)
+        self._betting(self.chips)
         self.with_allin = True
+
+    def _betting(self, bet):
+        self.chips -= bet
+        self.round_bets += bet
+        self.stage_bets += bet
+
+    def refresh_last_action(self):
+        self.last_action = None
+
+    def new_stage(self):
+        self.stage_bets = 0
+        self.dif = 0
+        self.refresh_last_action()
+
+    def new_round(self):
+        self.round_bets = 0
+        self.combo = None
+        self.hand.clean()
 
 
 class Game:
@@ -253,13 +250,13 @@ class Game:
         def have_dif(self):
             next_index = self._get_next_index()
             self[next_index].get_dif(self._max_round_bet)
-            if self[next_index].dif and self[next_index].chips_count:
+            if self[next_index].dif and self[next_index].chips:
                 return True
             for index in self._involved_order:
                 if index in (self._curent_index, next_index):
                     continue
                 self[index].get_dif(self._max_round_bet)
-                if self[index].dif and self[index].chips_count:
+                if self[index].dif and self[index].chips:
                     return True
             return False
 
@@ -281,8 +278,8 @@ class Game:
             for index in self._involved_order:
                 if index == self._curent_index:
                     continue
-                if self[index].chips_count > max_chips:
-                    max_chips = self[index].chips_count
+                if self[index].chips > max_chips:
+                    max_chips = self[index].chips
             return max_chips
 
         @property
@@ -338,7 +335,7 @@ class Game:
                     all_bets -= over_bet
                     looser.get_chips(over_bet)
                     data["loosers"][looser.identifier] -= over_bet
-                if not looser.chips_count:
+                if not looser.chips:
                     self._order.pop(self._order.index(self._scroll.index(looser)))
             gain_bets = all_bets - winners_bets
             for winner in winners:
@@ -425,7 +422,7 @@ class Game:
             return context
         if self._state != self.ALL_IN or \
             self._stage.name == self.Stage.PRE_FLOP and \
-                self._players.current.chips_count and \
+                self._players.current.chips and \
                     self._players.current.stage_bets < self._players.max_opponents_chips:
             self._players.get_dif()
             self._players.current.get_abilities()
@@ -507,7 +504,7 @@ class Game:
                 "current_player": self._players.current.identifier,
                 "players": {
                     player.identifier: {
-                        "chips": player.chips_count,
+                        "chips": player.chips,
                         "stage_bets": player.stage_bets,
                         "round_bets": player.round_bets,
                         "dif": player.dif,
