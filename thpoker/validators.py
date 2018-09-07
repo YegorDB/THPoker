@@ -40,5 +40,5 @@ class PlayerActionValidator:
                 raise exceptions.PlayerActionKindError(kind)
             if not type(bet) is int or bet < 0:
                 raise exceptions.PlayerActionBetError(kind)
-            init_function(init_self, symbol)
+            init_function(init_self, kind, bet)
         return wrap

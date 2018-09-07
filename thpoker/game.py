@@ -115,7 +115,7 @@ class Player:
             self.abilities[self.Action.CALL] = 0
             self.abilities[self.Action.CHECK] = True
 
-    def action(self, kind, bet):
+    def action(self, kind, bet=0):
         if kind not in self.Action.OUTSIDE_AVAILABLE:
             return Context(success=False, description="Wrong move kind.")
         args = [bet] if kind in self.Action.WITH_BET else []

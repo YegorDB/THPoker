@@ -88,5 +88,113 @@ class TestPlayer:
         assert player.has_ability[Player.Action.CALL]()
         assert not player.has_ability[Player.Action.CHECK]()
 
-    # def test_new_round(self):
-    #     self.player.new_round()
+    def test_raise(self):
+        player = Player("Johny")
+        player.get_chips(300)
+        player.get_abilities()
+        context = player.action(Player.Action.RAISE, 175)
+        assert context.success
+        assert player.chips == 125
+        assert player.stage_bets == 175
+        assert player.round_bets == 175
+        player.get_abilities()
+        context = player.action(Player.Action.RAISE, 240)
+        assert not context.success
+        player.get_chips(500)
+        player.get_dif(max_round_bet=420)
+        player.get_abilities()
+        context = player.action(Player.Action.RAISE, 240)
+        assert not context.success
+        context = player.action(Player.Action.RAISE, 425)
+        assert context.success
+        assert player.chips == 200
+        assert player.stage_bets == 600
+        assert player.round_bets == 600
+        player.get_dif(max_round_bet=990)
+        player.get_abilities()
+        context = player.action(Player.Action.RAISE, 200)
+        assert not context.success
+        player.get_dif(max_round_bet=700)
+        player.get_abilities()
+        context = player.action(Player.Action.RAISE, 200)
+        assert context.success
+        assert player.chips == 0
+        assert player.stage_bets == 800
+        assert player.round_bets == 800
+        assert player.with_allin
+
+    def test_call(self):
+        player = Player("Johny")
+        player.get_chips(800)
+        player.get_dif(max_round_bet=280)
+        player.get_abilities()
+        context = player.action(Player.Action.CALL)
+        assert context.success
+        assert player.chips == 520
+        assert player.stage_bets == 280
+        assert player.round_bets == 280
+        player.get_dif(max_round_bet=1000)
+        player.get_abilities()
+        context = player.action(Player.Action.CALL)
+        assert context.success
+        assert player.chips == 0
+        assert player.stage_bets == 800
+        assert player.round_bets == 800
+        assert player.with_allin
+        player.get_abilities()
+        context = player.action(Player.Action.CALL)
+        assert not context.success
+
+    def test_check(self):
+        player = Player("Johny")
+        player.get_chips(100)
+        player.stage_bets = 200
+        player.round_bets = 300
+        player.get_dif(max_round_bet=300)
+        player.get_abilities()
+        context = player.action(Player.Action.CHECK)
+        assert context.success
+        assert player.chips == 100
+        assert player.stage_bets == 200
+        assert player.round_bets == 300
+        player.get_dif(max_round_bet=350)
+        player.get_abilities()
+        context = player.action(Player.Action.CHECK)
+        assert not context.success
+
+    def test_fold(self):
+        player = Player("Johny")
+        player.get_chips(700)
+        player.stage_bets = 140
+        player.round_bets = 270
+        player.get_abilities()
+        context = player.action(Player.Action.FOLD)
+        assert context.success
+        assert player.chips == 700
+        player.get_dif(max_round_bet=350)
+        player.get_abilities()
+        context = player.action(Player.Action.FOLD)
+        assert context.success
+        assert player.chips == 700
+        player.get_dif(max_round_bet=1350)
+        player.get_abilities()
+        context = player.action(Player.Action.FOLD)
+        assert context.success
+        assert player.chips == 700
+
+    def test_blind_bet(self):
+        player = Player("Johny")
+        player.get_chips(100)
+        context = player.action(Player.Action.BLIND_BET, 40)
+        assert context.success
+        assert player.chips == 60
+        assert player.stage_bets == 40
+        assert player.round_bets == 40
+        player.stage_bets = 0
+        player.round_bets = 0
+        context = player.action(Player.Action.BLIND_BET, 200)
+        assert context.success
+        assert player.chips == 0
+        assert player.stage_bets == 60
+        assert player.round_bets == 60
+        assert player.with_allin
