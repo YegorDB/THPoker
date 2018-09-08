@@ -79,11 +79,23 @@ class TestCards:
         assert Card('Ks') in Cards("As/Ks/Qs/Js/Ts")
         assert not Card('8h') in Cards("As/Ks/Qs/Js/Ts")
 
-    def test_cards_count(self):
+    def test_pull(self):
         deck = Deck()
         cards = Cards()
+        assert len(cards.items) == 0
+        assert len(deck.cards) == 52
         cards.pull(deck, 3)
         assert len(cards.items) == 3
+        assert len(deck.cards) == 49
+        cards.pull_to(deck, 3)
+        assert len(cards.items) == 3
+        assert len(deck.cards) == 49
+        cards.pull_to(deck, 1)
+        assert len(cards.items) == 3
+        assert len(deck.cards) == 49
+        cards.pull_to(deck, 5)
+        assert len(cards.items) == 5
+        assert len(deck.cards) == 47
 
 
 class TestHand:

@@ -194,6 +194,7 @@ class Deck:
     """
 
     def __init__(self):
+        self.cards = []
         self.refresh()
 
     def __str__(self):

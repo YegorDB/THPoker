@@ -173,6 +173,22 @@ print(cards.items)
 # [2♣, 3♣, 4♣, 5♣, 6♣]
 ```
 
+In case you need to add some cards to a non empty `Cards` instance you can pull cards to count you need
+
+```python
+from thpoker.core import Deck, Cards
+
+deck = Deck()
+cards = Cards()
+cards.pull(deck, 3)
+print(len(cards.items), cards.items)
+# 3 [T♣, 3♠, K♦]
+
+cards.pull_to(deck, 5)
+print(len(cards.items), cards.items)
+# 5 [T♣, 3♠, K♦, J♠, J♥]
+```
+
 There is a possibility to find out whether the cards contain a card or not
 
 ```python
