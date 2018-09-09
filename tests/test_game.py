@@ -15,8 +15,8 @@
 
 import pytest
 
-from thpoker.core import Table, Hand, Combo
-from thpoker.game import Context, Player, Game
+from thpoker.core import Deck, Table, Hand, Combo
+from thpoker.game import Player, Game
 from thpoker.exceptions import PlayerActionKindError, PlayerActionBetError
 
 from utils import get_parameters
@@ -59,6 +59,15 @@ class TestPlayer:
         assert player.chips == 150
         player.get_chips(250)
         assert player.chips == 400
+
+    def test_get_cards(self):
+        player = Player("Johny")
+        deck = Deck()
+        assert len(player.hand.items) == 0
+        assert len(deck.cards) == 52
+        player.get_cards(deck)
+        assert len(player.hand.items) == 2
+        assert len(deck.cards) == 50
 
     def test_get_combo(self):
         player = Player("Johny")
@@ -198,3 +207,103 @@ class TestPlayer:
         assert player.stage_bets == 60
         assert player.round_bets == 60
         assert player.with_allin
+
+
+class TestGamePlayers:
+    def test_initial(self):
+        players = Game.Players(1000, Player("Johny"), Player("Harry"))
+        assert players._order in ([0, 1], [1, 0])
+        assert players._order == players._involved_order
+        assert players._curent_index == 0
+        assert players._max_round_bet == 0
+        for player in players:
+            assert player.chips == 1000
+
+    def test_order(self):
+        first = Player("first")
+        second = Player("second")
+        third = Player("third")
+        fourth = Player("fourth")
+        players = Game.Players(1000, first, second, third, fourth)
+        players._order = [0, 1, 2, 3]
+        players._involved_order = players._order[:]
+        assert players.current is first
+        assert players.next_player() == 1
+        assert players.current is second
+        assert players.next_player() == 2
+        assert players.current is third
+        assert players.next_player() == 3
+        assert players.current is fourth
+        assert players.current_is_last
+        assert players.next_player() == 0
+        players.change_order()
+        assert players._curent_index == 0
+        assert players.current is second
+
+    def test_get_blindes(self):
+        first = Player("first")
+        second = Player("second")
+        third = Player("third")
+        fourth = Player("fourth")
+        players = Game.Players(1000, first, second, third, fourth)
+        players._order = [0, 1, 2, 3]
+        players._involved_order = players._order[:]
+        context = players.get_blindes(10, 20)
+        assert context.success
+        assert first.stage_bets == 0
+        assert first.round_bets == 0
+        assert second.stage_bets == 0
+        assert second.round_bets == 0
+        assert third.stage_bets == 10
+        assert third.round_bets == 10
+        assert fourth.stage_bets == 20
+        assert fourth.round_bets == 20
+        assert players._curent_index == 0
+
+    def test_action(self):
+        first = Player("first")
+        second = Player("second")
+        third = Player("third")
+        fourth = Player("fourth")
+        players = Game.Players(1000, first, second, third, fourth)
+        players._order = [0, 1, 2, 3]
+        players._involved_order = players._order[:]
+        assert not players.have_dif
+        assert players.bank == 0
+        assert players.max_opponents_chips == 1000
+        assert players.rolling_count == 4
+        assert players.involved_count == 4
+        for i in range(3):
+            players.get_current_dif()
+            assert players.current.dif == i * 20
+            players.get_current_abilities()
+            assert players.current.abilities[Player.Action.RAISE]["min"] == i * 20 + 1
+            assert players.current.abilities[Player.Action.RAISE]["max"] == 1000
+            assert players.current.abilities[Player.Action.CALL] == i * 20
+            if i:
+                assert players.current.abilities[Player.Action.CHECK] == False
+            context = players.action(Player.Action.RAISE, (i + 1) * 20)
+            assert context.success
+            assert players.next_player() == i + 1
+        assert players.have_dif
+        assert players.bank == 120
+        assert players.max_opponents_chips == 980
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        assert players.next_player() == 0
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.FOLD)
+        assert context.success
+        assert players.next_player(after_fold=True) == 0
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.FOLD)
+        assert context.success
+        assert players.next_player(after_fold=True) == 0
+        assert players.rolling_count == 4
+        assert players.involved_count == 2
+        assert players.bank == 180
+        assert players.max_opponents_chips == 940

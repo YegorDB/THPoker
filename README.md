@@ -370,7 +370,7 @@ print(combo1.is_half_nominal)
 
 ### HardCore
 
-*HardCore is the project module that allows you to find a combination faster than Core module, but HardCore is not as friendly as Core is. Hardcore module based on [CTHPoker](https://github.com/YegorDB/CTHPoker) module, wich is based on C.*
+*HardCore is the project module that allows you to find a combination faster than Core module, but HardCore is not as friendly as Core is. Since version 2.0.0 hardcore module based on [CTHPoker](https://github.com/YegorDB/CTHPoker) module, wich is based on C.*
 
 #### hcard(sign)
 
