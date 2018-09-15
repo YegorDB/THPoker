@@ -467,7 +467,7 @@ class Game:
                 self._state = self.ALL_IN
             self._players.get_cards(self._deck)
         else:
-            self._table.pull_to(self._deck, self._stage.table_size)
+            self._table.pull(self._deck, self._stage.table_size - self._table.size)
             context = Context(success=True)
         return context
 

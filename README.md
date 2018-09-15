@@ -128,15 +128,15 @@ print(deck)
 #     K♣, K♦, K♥, K♠,
 #     A♣, A♦, A♥, A♠,
 # ]
-print(len(deck.cards))
+print(deck.size)
 # 52
 cards = deck.push_cards(3) # return generator of 3 random cards
 print(list(cards))
 # [A♥, 2♥, J♠]
-print(len(deck.cards))
+print(deck.size)
 # 49
 deck.refresh()
-print(len(deck.cards))
+print(deck.size)
 # 52
 ```
 
@@ -155,10 +155,14 @@ print(cards.items)
 
 deck = Deck()
 cards.pull(deck, 3) # pull 3 random cards
+print(cards.size)
+# 3
 print(cards.items)
 # [2♦, 7♣, J♦]
 
 cards.pull(deck, 2) # add 2 cards to a non empty Cards instance
+print(cards.size)
+# 5
 print(cards.items)
 # [2♦, 7♣, J♦, 3♣, T♠]
 

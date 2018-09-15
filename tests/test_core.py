@@ -62,8 +62,10 @@ class TestDeck:
             list(Deck().push_cards(53))
 
     def test_count(self):
-        assert len(Deck().cards) == 52
-        assert len(list(Deck().push_cards(2))) == 2
+        deck = Deck()
+        assert deck.size == 52
+        assert len(list(deck.push_cards(2))) == 2
+        assert deck.size == 50
 
 
 class TestCards:
@@ -82,20 +84,20 @@ class TestCards:
     def test_pull(self):
         deck = Deck()
         cards = Cards()
-        assert len(cards.items) == 0
-        assert len(deck.cards) == 52
+        assert cards.size == 0
+        assert deck.size == 52
         cards.pull(deck, 3)
-        assert len(cards.items) == 3
-        assert len(deck.cards) == 49
+        assert cards.size == 3
+        assert deck.size == 49
         cards.pull(deck, 2)
-        assert len(cards.items) == 5
-        assert len(deck.cards) == 47
+        assert cards.size == 5
+        assert deck.size == 47
         cards.pull(deck, 10) # can add only 2 cards (Cards item limit is 7)
-        assert len(cards.items) == 7
-        assert len(deck.cards) == 45
+        assert cards.size == 7
+        assert deck.size == 45
         cards.pull(deck, 5) # can't add cards (item limit has been reached)
-        assert len(cards.items) == 7
-        assert len(deck.cards) == 45
+        assert cards.size == 7
+        assert deck.size == 45
 
 
 class TestHand:

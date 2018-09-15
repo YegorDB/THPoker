@@ -203,6 +203,10 @@ class Deck:
     def __repr__(self):
         return str(self.cards)
 
+    @property
+    def size(self):
+        return len(self.cards)
+
     def push_cards(self, count):
         count_type = type(count)
         if not count_type is int:
@@ -253,10 +257,14 @@ class Cards:
     def __contains__(self, item):
         return item in self.items
 
+    @property
+    def size(self):
+        return len(self.items)
+
     def pull(self, deck, count):
-        max_to_add = self.max_count - len(self.items)
-        if max_to_add > 0:
-            count_to_add = max_to_add if count > max_to_add else count
+        max_to_add = self.max_count - self.size
+        count_to_add = max_to_add if count > max_to_add else count
+        if count_to_add > 0:
             self.items += list(deck.push_cards(count_to_add))
 
     def clean(self):
