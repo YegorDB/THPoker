@@ -210,21 +210,37 @@ class TestPlayer:
 
 
 class TestGamePlayers:
+    def get_players(test_method):
+        def wrap(self):
+            first = Player("first")
+            second = Player("second")
+            third = Player("third")
+            fourth = Player("fourth")
+            players = Game.Players(1000, first, second, third, fourth)
+            test_method(self, players, first, second, third, fourth)
+        return wrap
+
+    def test_validation(self):
+        with pytest.raises(exceptions.GamePlayersChipsError):
+            Game.Players("1000", Player("Johny"), Player("Harry"))
+        with pytest.raises(exceptions.GamePlayersChipsError):
+            Game.Players(-1000, Player("Johny"), Player("Harry"))
+        with pytest.raises(exceptions.GamePlayersPlayersError):
+            Game.Players(1000, Player("Johny"))
+        with pytest.raises(exceptions.GamePlayersPlayersError):
+            Game.Players(1000, *(Player(i) for i in range(11)))
+
     def test_initial(self):
         players = Game.Players(1000, Player("Johny"), Player("Harry"))
         assert players._order in ([0, 1], [1, 0])
         assert players._order == players._involved_order
-        assert players._curent_index == 0
+        assert players._current_index == 0
         assert players._max_round_bet == 0
         for player in players:
             assert player.chips == 1000
 
-    def test_order(self):
-        first = Player("first")
-        second = Player("second")
-        third = Player("third")
-        fourth = Player("fourth")
-        players = Game.Players(1000, first, second, third, fourth)
+    @get_players
+    def test_order(self, players, first, second, third, fourth):
         players._order = [0, 1, 2, 3]
         players._involved_order = players._order[:]
         assert players.current is first
@@ -237,15 +253,11 @@ class TestGamePlayers:
         assert players.current_is_last
         assert players.next_player() == 0
         players.change_order()
-        assert players._curent_index == 0
+        assert players._current_index == 0
         assert players.current is second
 
-    def test_get_blindes(self):
-        first = Player("first")
-        second = Player("second")
-        third = Player("third")
-        fourth = Player("fourth")
-        players = Game.Players(1000, first, second, third, fourth)
+    @get_players
+    def test_get_blindes(self, players, first, second, third, fourth):
         players._order = [0, 1, 2, 3]
         players._involved_order = players._order[:]
         context = players.get_blindes(10, 20)
@@ -258,16 +270,17 @@ class TestGamePlayers:
         assert third.round_bets == 10
         assert fourth.stage_bets == 20
         assert fourth.round_bets == 20
-        assert players._curent_index == 0
+        assert players._current_index == 0
 
-    def test_action(self):
+    @get_players
+    def test_action(self, players, first, second, third, fourth):
         first = Player("first")
         second = Player("second")
         third = Player("third")
         fourth = Player("fourth")
         players = Game.Players(1000, first, second, third, fourth)
         players._order = [0, 1, 2, 3]
-        players._involved_order = players._order[:]
+        players._involved_order = [0, 1, 2, 3]
         assert not players.have_dif
         assert players.bank == 0
         assert players.max_opponents_chips == 1000
@@ -307,3 +320,30 @@ class TestGamePlayers:
         assert players.involved_count == 2
         assert players.bank == 180
         assert players.max_opponents_chips == 940
+
+    @get_players
+    def test_global_allin(self, players, first, second, third, fourth):
+        assert not players.global_allin
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 1000)
+        assert context.success
+        assert not players.global_allin
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.FOLD)
+        assert context.success
+        assert not players.global_allin
+        players.next_player(after_fold=True)
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        assert not players.global_allin
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        assert players.global_allin

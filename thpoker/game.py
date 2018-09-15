@@ -201,36 +201,38 @@ class Game:
         Class to handle palyers actions and communications
         """
 
+        @game_players_validator
         def __init__(self, chips, *players):
             self._scroll = players
             self._order = self._get_order(len(players))
             self._involved_order = self._order[:]
-            self._curent_index = 0 # active player's index
+            self._current_index = 0 # active player's index
             self._max_round_bet = 0
             self.bank = 0
             for player in self:
                 player.get_chips(chips)
 
         def __getitem__(self, key):
-            return self._scroll[self._order[key]]
+            return self._scroll[self._involved_order[key]]
 
         def _get_order(self, players_count):
             return random.sample(range(players_count), players_count)
 
         @property
         def current(self): # active player
-            return self[self._curent_index]
+            return self[self._current_index]
 
         def _get_next_index(self):
-            return self._curent_index + 1 if self._curent_index < len(self._involved_order) - 1 else 0
+            return 0 if self._current_index == len(self._involved_order) - 1 else self._current_index + 1
 
         def next_player(self, after_fold=False): # transition move rights
-            self._curent_index = self._get_next_index()
             if after_fold:
-                self._involved_order.pop(self._curent_index)
-                if self._curent_index != 0:
-                    self._curent_index -= 1
-            return self._curent_index
+                self._involved_order.pop(self._current_index)
+                if self._current_index == len(self._involved_order):
+                    self._current_index = 0
+            else:
+                self._current_index = self._get_next_index()
+            return self._current_index
 
         @property
         def current_is_last(self):
@@ -245,13 +247,13 @@ class Game:
                 player.get_cards(deck)
 
         def get_blindes(self, small_blind, big_blind):
-            self._curent_index = self.involved_count - 2
+            self._current_index = self.involved_count - 2
             context = self.action(Player.Action.BLIND_BET, small_blind)
             if not context.success:
                 return context
-            self._curent_index = self.involved_count - 1
+            self._current_index = self.involved_count - 1
             context = self.action(Player.Action.BLIND_BET, big_blind)
-            self._curent_index = 0
+            self._current_index = 0
             return context
 
         @property
@@ -270,17 +272,17 @@ class Game:
                 if self.current.round_bets > self._max_round_bet:
                     self._max_round_bet = self.current.round_bets
                 if self.current.last_action.kind == Player.Action.FOLD and len(self._involved_order) == 2:
-                    self[abs(self._curent_index - 1)].get_chips(self.bank)
+                    self[abs(self._current_index - 1)].get_chips(self.bank)
             return context
 
         @property
         def max_opponents_chips(self):
             max_chips = 0
-            for index in self._involved_order:
-                if index == self._curent_index:
+            for player in self:
+                if player is self.current:
                     continue
-                if self[index].chips > max_chips:
-                    max_chips = self[index].chips
+                if player.chips > max_chips:
+                    max_chips = player.chips
             return max_chips
 
         def get_current_dif(self):
@@ -291,15 +293,11 @@ class Game:
 
         @property
         def have_dif(self):
-            next_index = self._get_next_index()
-            self[next_index].get_dif(self._max_round_bet)
-            if self[next_index].dif and self[next_index].chips:
-                return True
-            for index in self._involved_order:
-                if index in (self._curent_index, next_index):
+            for player in self:
+                if player is self.current:
                     continue
-                self[index].get_dif(self._max_round_bet)
-                if self[index].dif and self[index].chips:
+                player.get_dif(self._max_round_bet)
+                if player.dif and player.chips > 0:
                     return True
             return False
 
@@ -310,8 +308,9 @@ class Game:
             if not_in_allin_players_count == 0:
                 return True
             elif not_in_allin_players_count == 1:
-                not_in_allin_players[0].get_dif(self._max_round_bet)
-                return not_in_allin_players[0].dif == 0
+                player = not_in_allin_players[0]
+                player.get_dif(self._max_round_bet)
+                return player.dif == 0
             return False
 
         def _get_result_rank(self, table):
@@ -364,7 +363,7 @@ class Game:
         def new_stage(self):
             for player in self:
                 player.new_stage()
-            self._curent_index = 0
+            self._current_index = 0
 
         def new_round(self):
             for player in self:
@@ -485,6 +484,7 @@ class Game:
             current_index = self._players.next_player()
             if current_index == 0:
                 self._stage.depth_increase()
+            self._players.get_current_dif()
             self._players.get_current_abilities()
             return Context(
                 success=True,
