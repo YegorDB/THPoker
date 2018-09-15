@@ -16,7 +16,7 @@
 import random
 
 from thpoker.core import Deck, Table, Hand, Combo
-from thpoker.validators import PlayerActionValidator
+from thpoker.validators import PlayerActionValidator, game_players_validator
 
 
 class Context:

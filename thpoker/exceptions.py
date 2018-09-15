@@ -81,3 +81,13 @@ class PlayerActionKindError(Exception):
 class PlayerActionBetError(Exception):
     def __init__(self, bet):
         super().__init__(f"'{str(bet)}' is not a legal action bet. It has to be positive integer.")
+
+
+class GamePlayersChipsError(Exception):
+    def __init__(self):
+        super().__init__(f"Chips need to be positive integer.")
+
+
+class GamePlayersPlayersError(Exception):
+    def __init__(self):
+        super().__init__(f"Players count need to be from 2 to 10.")

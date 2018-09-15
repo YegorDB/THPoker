@@ -13,6 +13,8 @@
 # limitations under the License.
 
 
+from functools import wraps
+
 from thpoker import exceptions
 
 
@@ -42,3 +44,15 @@ class PlayerActionValidator:
                 raise exceptions.PlayerActionBetError(kind)
             init_function(init_self, kind, bet)
         return wrap
+
+
+def game_players_validator(func):
+    @wraps(func)
+    def wrap(self, chips, *players):
+        if not type(chips) is int or chips < 1:
+            raise exceptions.GamePlayersChipsError()
+        players_count = len(players)
+        if players_count < 2 or players_count > 10:
+            raise exceptions.GamePlayersPlayersError()
+        func(self, chips, *players)
+    return wrap

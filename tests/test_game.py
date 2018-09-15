@@ -17,20 +17,20 @@ import pytest
 
 from thpoker.core import Deck, Table, Hand, Combo
 from thpoker.game import Player, Game
-from thpoker.exceptions import PlayerActionKindError, PlayerActionBetError
+from thpoker import exceptions
 
 from utils import get_parameters
 
 
 class TestPlayerAction:
     def test_validation(self):
-        with pytest.raises(PlayerActionKindError):
+        with pytest.raises(exceptions.PlayerActionKindError):
             Player.Action(kind="wait")
-        with pytest.raises(PlayerActionKindError):
+        with pytest.raises(exceptions.PlayerActionKindError):
             Player.Action(kind=15)
-        with pytest.raises(PlayerActionBetError):
+        with pytest.raises(exceptions.PlayerActionBetError):
             Player.Action(kind=Player.Action.CHECK, bet="123")
-        with pytest.raises(PlayerActionBetError):
+        with pytest.raises(exceptions.PlayerActionBetError):
             Player.Action(kind=Player.Action.CALL, bet=-123)
 
 
