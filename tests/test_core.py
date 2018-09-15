@@ -87,15 +87,15 @@ class TestCards:
         cards.pull(deck, 3)
         assert len(cards.items) == 3
         assert len(deck.cards) == 49
-        cards.pull_to(deck, 3)
-        assert len(cards.items) == 3
-        assert len(deck.cards) == 49
-        cards.pull_to(deck, 1)
-        assert len(cards.items) == 3
-        assert len(deck.cards) == 49
-        cards.pull_to(deck, 5)
+        cards.pull(deck, 2)
         assert len(cards.items) == 5
         assert len(deck.cards) == 47
+        cards.pull(deck, 10) # can add only 2 cards (Cards item limit is 7)
+        assert len(cards.items) == 7
+        assert len(deck.cards) == 45
+        cards.pull(deck, 5) # can't add cards (item limit has been reached)
+        assert len(cards.items) == 7
+        assert len(deck.cards) == 45
 
 
 class TestHand:

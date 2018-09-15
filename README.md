@@ -154,11 +154,15 @@ print(cards.items)
 # []
 
 deck = Deck()
-cards.pull(deck, 5) # pull 5 random cards
+cards.pull(deck, 3) # pull 3 random cards
+print(cards.items)
+# [2♦, 7♣, J♦]
+
+cards.pull(deck, 2) # add 2 cards to a non empty Cards instance
 print(cards.items)
 # [2♦, 7♣, J♦, 3♣, T♠]
 
-cards.clean() # it is not necessary because of pull overwrites items
+cards.clean()
 print(cards.items)
 # []
 ```
@@ -171,22 +175,6 @@ from thpoker.core import Cards
 cards = Cards("2c/3c/4c/5c/6c")
 print(cards.items)
 # [2♣, 3♣, 4♣, 5♣, 6♣]
-```
-
-In case you need to add some cards to a non empty `Cards` instance you can pull cards to count you need
-
-```python
-from thpoker.core import Deck, Cards
-
-deck = Deck()
-cards = Cards()
-cards.pull(deck, 3)
-print(len(cards.items), cards.items)
-# 3 [T♣, 3♠, K♦]
-
-cards.pull_to(deck, 5)
-print(len(cards.items), cards.items)
-# 5 [T♣, 3♠, K♦, J♠, J♥]
 ```
 
 There is a possibility to find out whether the cards contain a card or not
