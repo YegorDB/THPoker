@@ -15,7 +15,7 @@
 
 import pytest
 
-from thpoker.core import Deck, Table, Hand, Combo
+from thpoker.core import Card, Deck, Table, Hand, Combo
 from thpoker.game import Player, Game
 from thpoker import exceptions
 
@@ -274,11 +274,6 @@ class TestGamePlayers:
 
     @get_players
     def test_action(self, players, first, second, third, fourth):
-        first = Player("first")
-        second = Player("second")
-        third = Player("third")
-        fourth = Player("fourth")
-        players = Game.Players(1000, first, second, third, fourth)
         players._order = [0, 1, 2, 3]
         players._involved_order = [0, 1, 2, 3]
         assert not players.have_dif
@@ -347,3 +342,69 @@ class TestGamePlayers:
         context = players.action(Player.Action.CALL)
         assert context.success
         assert players.global_allin
+
+    @get_players
+    def test_get_result_rank(self, players, first, second, third, fourth):
+        first.hand.items = [Card("Ac"), Card("Ad")]
+        second.hand.items = [Card("6s"), Card("7s")]
+        third.hand.items = [Card("Tc"), Card("6d")]
+        fourth.hand.items = [Card("Qs"), Card("8d")]
+        table = Table("5s/Qd/7d/8c/4s")
+        winners, loosers = players._get_result_rank(table)
+        assert first in loosers
+        assert second in winners
+        assert third in winners
+        assert fourth in loosers
+
+    @get_players
+    def test_get_result(self, players, first, second, third, fourth):
+        first.chips = 1200
+        second.chips = 500
+        third.chips = 800
+        fourth.chips = 1500
+        players._order = [0, 1, 2, 3]
+        players._involved_order = [0, 1, 2, 3]
+        first.hand.items = [Card("5c"), Card("2h")]
+        second.hand.items = [Card("8h"), Card("Kh")]
+        third.hand.items = [Card("5d"), Card("2d")]
+        fourth.hand.items = [Card("5s"), Card("2c")]
+        table = Table("3d/7h/Ad/4s/Jc")
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 200)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 800)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        data = players.get_result(table)
+        assert data["winners"]["first"] == 967
+        assert data["loosers"]["second"] == 500
+        assert data["winners"]["third"] == 967
+        assert data["winners"]["fourth"] == 966
+        assert players._order == [0, 2, 3]
+        assert first.chips == 1367
+        assert second.chips == 0
+        assert third.chips == 967
+        assert fourth.chips == 1666

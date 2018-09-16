@@ -314,25 +314,27 @@ class Game:
             return False
 
         def _get_result_rank(self, table):
-            rank = {"winners": [], "loosers": []}
+            winners = []
+            loosers = []
             best_combo = None
             for player in self:
                 combo = player.combo or player.get_combo(table)
                 if best_combo:
                     if combo > best_combo:
                         best_combo = combo
-                        rank["loosers"] += rank["winners"]
-                        rank["winners"] = [player]
+                        loosers += winners
+                        winners = [player]
                     elif combo == best_combo:
-                        rank["winners"].append(player)
+                        winners.append(player)
                     else:
-                        rank["loosers"].append(player)
+                        loosers.append(player)
                 else:
                     best_combo = combo
-                    rank["winners"] = [player]
-            return rank
+                    winners = [player]
+            return winners, loosers
 
-        def _get_result_data(self, winners, loosers):
+        def get_result(self, table):
+            winners, loosers = self._get_result_rank(table)
             data = {"winners": {}, "loosers": {}}
             winners_bets = sum((p.round_bets for p in winners))
             all_bets = self.bank
@@ -350,15 +352,12 @@ class Game:
                 gain = winner.round_bets + int(gain_bets * winner.round_bets / winners_bets)
                 winner.get_chips(gain)
                 data["winners"][winner.identifier] = gain
-            getted_gain = sum(data["winners"].values())
+            getted_gain = sum(data["winners"].values()) - winners_bets
             if getted_gain < gain_bets:
                 for i in range(gain_bets - getted_gain):
                     winners[i].get_chips(1)
                     data["winners"][winners[i].identifier] += 1
             return data
-
-        def get_result(self, table):
-            return self._get_result_data(**self._get_result_rank(table))
 
         def new_stage(self):
             for player in self:
