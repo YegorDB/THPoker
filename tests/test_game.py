@@ -278,7 +278,6 @@ class TestGamePlayers:
         players._involved_order = [0, 1, 2, 3]
         assert not players.have_dif
         assert players.bank == 0
-        assert players.max_opponents_chips == 1000
         assert players.rolling_count == 4
         assert players.involved_count == 4
         for i in range(3):
@@ -295,7 +294,6 @@ class TestGamePlayers:
             assert players.next_player() == i + 1
         assert players.have_dif
         assert players.bank == 120
-        assert players.max_opponents_chips == 980
         players.get_current_dif()
         players.get_current_abilities()
         context = players.action(Player.Action.CALL)
@@ -314,7 +312,6 @@ class TestGamePlayers:
         assert players.rolling_count == 4
         assert players.involved_count == 2
         assert players.bank == 180
-        assert players.max_opponents_chips == 940
 
     @get_players
     def test_global_allin(self, players, first, second, third, fourth):
@@ -408,3 +405,7 @@ class TestGamePlayers:
         assert second.chips == 0
         assert third.chips == 967
         assert fourth.chips == 1666
+
+
+class TestGameStage:
+    pass

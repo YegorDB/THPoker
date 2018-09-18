@@ -275,16 +275,6 @@ class Game:
                     self[abs(self._current_index - 1)].get_chips(self.bank)
             return context
 
-        @property
-        def max_opponents_chips(self):
-            max_chips = 0
-            for player in self:
-                if player is self.current:
-                    continue
-                if player.chips > max_chips:
-                    max_chips = player.chips
-            return max_chips
-
         def get_current_dif(self):
             self.current.get_dif(self._max_round_bet)
 
@@ -296,9 +286,10 @@ class Game:
             for player in self:
                 if player is self.current:
                     continue
-                player.get_dif(self._max_round_bet)
-                if player.dif and player.chips > 0:
-                    return True
+                if not player.with_allin:
+                    player.get_dif(self._max_round_bet)
+                    if player.dif:
+                        return True
             return False
 
         @property
@@ -385,7 +376,6 @@ class Game:
         ALL = (PRE_FLOP, FLOP, TURN, RIVER)
 
         def __init__(self):
-            self._started = False
             self._index = 0 # current stage index
             self._depth = 0 # full players moves cycles count per stage
 
@@ -402,11 +392,8 @@ class Game:
             return self._depth
 
         def next(self):
-            if self._started:
-                self._index += 1
-                self._depth = 0
-            else:
-                self._started = True
+            self._index += 1
+            self._depth = 0
 
         def depth_increase(self):
             self._depth += 1
@@ -429,25 +416,22 @@ class Game:
         self._state = self.NORMAL
         self._stage = self.Stage()
         self._result = None
-        return Context(
-            success=True,
-            description="Redy to start new stage.",
-            **self._get_context_data(self.STAGE_NEEDED))
+        return self._new_stage()
 
     def new_stage(self):
         if self._state in (self.SHOW_DOWN, self.FOLD):
             return Context(success=False, description="Round over.", **self._get_context_data(self.ROUND_NEEDED))
         self._stage.next()
-        self._players.new_stage()
         if self._players.rolling_count == 2 and self._stage.name == self.Stage.FLOP:
             self._players.change_order()
+        return self._new_stage()
+
+    def _new_stage(self):
+        self._players.new_stage()
         context = self._distribution()
         if not context.success:
             return context
-        if self._state != self.ALL_IN or \
-            self._stage.name == self.Stage.PRE_FLOP and \
-                self._players.current.chips and \
-                    self._players.current.stage_bets < self._players.max_opponents_chips:
+        if self._state != self.ALL_IN:
             self._players.get_current_dif()
             self._players.get_current_abilities()
             return Context(
@@ -461,9 +445,10 @@ class Game:
     def _distribution(self):
         if self._stage.name == self.Stage.PRE_FLOP:
             context = self._players.get_blindes(*self._blindes)
-            if self._players.global_allin:
-                self._state = self.ALL_IN
-            self._players.get_cards(self._deck)
+            if context.success:
+                self._players.get_cards(self._deck)
+                if self._players.global_allin:
+                    self._state = self.ALL_IN
         else:
             self._table.pull(self._deck, self._stage.table_size - self._table.size)
             context = Context(success=True)
@@ -479,7 +464,7 @@ class Game:
                 return self._stage_end()
         if self._players.current.last_action.kind == Player.Action.ALL_IN and self._players.global_allin:
             self._state = self.ALL_IN
-        if self._players.have_dif or not self._players.current_is_last and self._stage.depth_count == 0:
+        elif self._players.have_dif or not self._players.current_is_last and self._stage.depth_count == 0:
             current_index = self._players.next_player()
             if current_index == 0:
                 self._stage.depth_increase()
