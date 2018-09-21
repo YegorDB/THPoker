@@ -80,6 +80,7 @@ class Player:
         self.chips = 0
         self.round_bets = 0
         self.stage_bets = 0
+        self.unpaid_bets = 0
         self.last_action = None
         self.abilities = {
             self.Action.RAISE: {"min": 0, "max": 0},
@@ -95,6 +96,9 @@ class Player:
         self.combo = None
         self.hand = Hand()
         self.with_allin = False
+
+    def __str__(self):
+        return str(self.identifier)
 
     def get_chips(self, chips):
         self.chips += chips
@@ -157,6 +161,7 @@ class Player:
     def _betting(self, bet):
         self.chips -= bet
         self.round_bets += bet
+        self.unpaid_bets += bet
         self.stage_bets += bet
 
     def refresh_last_action(self):
@@ -169,6 +174,7 @@ class Player:
 
     def new_round(self):
         self.round_bets = 0
+        self.unpaid_bets = 0
         self.combo = None
         self.hand.clean()
 
@@ -328,9 +334,13 @@ class Game:
 
         def get_result(self, table):
             winners, loosers = self._get_result_rank(table)
-            data = {"winners": {}, "loosers": {}}
+            data = {
+                "winners": {w.identifier: w.round_bets for w in winners},
+                "loosers": {},
+            }
             winners_bets = sum((p.round_bets for p in winners))
             all_bets = self.bank
+
             for looser in loosers:
                 data["loosers"][looser.identifier] = looser.round_bets
                 if looser.round_bets > winners_bets:
@@ -340,16 +350,45 @@ class Game:
                     data["loosers"][looser.identifier] -= over_bet
                 if not looser.chips:
                     self._order.pop(self._order.index(self._scroll.index(looser)))
-            gain_bets = all_bets - winners_bets
+
             for winner in winners:
-                gain = winner.round_bets + int(gain_bets * winner.round_bets / winners_bets)
-                winner.get_chips(gain)
-                data["winners"][winner.identifier] = gain
-            getted_gain = sum(data["winners"].values()) - winners_bets
-            if getted_gain < gain_bets:
-                for i in range(gain_bets - getted_gain):
-                    winners[i].get_chips(1)
-                    data["winners"][winners[i].identifier] += 1
+                winner.get_chips(winner.round_bets)
+
+            winners_to_pay = winners[:]
+            gain_bets = all_bets - winners_bets
+            while gain_bets > 0:
+                bet_to_pay = min((w.unpaid_bets for w in winners_to_pay))
+                gain = min((bet_to_pay, gain_bets))
+                winners_to_pay_count = len(winners_to_pay)
+
+                if winners_to_pay_count == 1:
+                    winner = winners_to_pay[0]
+                    winner.get_chips(gain)
+                    data["winners"][winner.identifier] += gain
+                    winner.unpaid_bets -= bet_to_pay
+                else:
+                    pay = int(gain / winners_to_pay_count)
+                    paid_winners_indexes = []
+
+                    for i in range(winners_to_pay_count):
+                        winner = winners_to_pay[i]
+                        winner.get_chips(pay)
+                        data["winners"][winner.identifier] += pay
+                        winner.unpaid_bets -= bet_to_pay
+                        if not winner.unpaid_bets:
+                            paid_winners_indexes.append(i)
+
+                    for i in range(gain - pay * winners_to_pay_count):
+                        winner = winners_to_pay[i]
+                        winner.get_chips(1)
+                        data["winners"][winner.identifier] += 1
+
+                    paid_winners_indexes.reverse()
+                    for index in paid_winners_indexes:
+                        winners_to_pay.pop(index)
+
+                gain_bets -= gain
+
             return data
 
         def new_stage(self):

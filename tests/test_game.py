@@ -436,9 +436,6 @@ class TestGamePlayers:
         players.get_current_abilities()
         context = players.action(Player.Action.RAISE, 400)
         assert context.success
-        print(players.current.identifier)
-        print(players.current.with_allin)
-        print(players.current.chips)
         players.next_player()
         assert players._current_index == 2
         players.get_current_dif()
@@ -458,12 +455,12 @@ class TestGamePlayers:
         context = players.action(Player.Action.CALL)
         assert context.success
         data = players.get_result(table)
-        assert data["winners"]["first"] == 1240
-        assert data["winners"]["third"] == 660
+        assert data["winners"]["first"] == 1300
+        assert data["winners"]["third"] == 600
         assert data["loosers"]["fourth"] == 750
-        assert first.chips == 1240
+        assert first.chips == 1300
         assert second.chips == 1100
-        assert third.chips == 660
+        assert third.chips == 600
         assert fourth.chips == 1000
 
 
