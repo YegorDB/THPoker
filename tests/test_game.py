@@ -406,6 +406,84 @@ class TestGamePlayers:
         assert third.chips == 967
         assert fourth.chips == 1666
 
+    @get_players
+    def test_get_result_with_fold_and_across_allin(self, players, first, second, third, fourth):
+        first.chips = 750
+        second.chips = 1100
+        third.chips = 400
+        fourth.chips = 1750
+        players._order = [0, 1, 2, 3]
+        players._involved_order = [0, 1, 2, 3]
+        first.hand.items = [Card("Qs"), Card("Td")]
+        second.hand.items = [Card("Th"), Card("4d")]
+        third.hand.items = [Card("Tc"), Card("7c")]
+        fourth.hand.items = [Card("Ad"), Card("As")]
+        table = Table("Qh/3s/Ah/Jh/Kh")
+        assert players._current_index == 0
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 100)
+        assert context.success
+        players.next_player()
+        assert players._current_index == 1
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.FOLD)
+        assert context.success
+        players.next_player(after_fold=True)
+        assert players._current_index == 1
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 400)
+        assert context.success
+        print(players.current.identifier)
+        print(players.current.with_allin)
+        print(players.current.chips)
+        players.next_player()
+        assert players._current_index == 2
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        players.next_player()
+        assert players._current_index == 0
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 650)
+        assert context.success
+        players.next_player()
+        assert players._current_index == 2
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        data = players.get_result(table)
+        assert data["winners"]["first"] == 1240
+        assert data["winners"]["third"] == 660
+        assert data["loosers"]["fourth"] == 750
+        assert first.chips == 1240
+        assert second.chips == 1100
+        assert third.chips == 660
+        assert fourth.chips == 1000
+
 
 class TestGameStage:
-    pass
+    def test_complex(self):
+        stage = Game.Stage()
+        assert stage.name == Game.Stage.PRE_FLOP
+        assert stage.table_size == 0
+        assert stage.depth_count == 0
+        stage.next()
+        assert stage.name == Game.Stage.FLOP
+        assert stage.table_size == 3
+        stage.depth_increase()
+        assert stage.depth_count == 1
+        stage.next()
+        assert stage.name == Game.Stage.TURN
+        assert stage.table_size == 4
+        assert stage.depth_count == 0
+        stage.next()
+        assert stage.name == Game.Stage.RIVER
+        assert stage.table_size == 5
+        stage.depth_increase()
+        assert stage.depth_count == 1

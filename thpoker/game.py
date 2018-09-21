@@ -232,6 +232,8 @@ class Game:
                     self._current_index = 0
             else:
                 self._current_index = self._get_next_index()
+            if self.current.with_allin:
+                return self.next_player()
             return self._current_index
 
         @property
