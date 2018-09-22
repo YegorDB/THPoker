@@ -463,6 +463,92 @@ class TestGamePlayers:
         assert third.chips == 600
         assert fourth.chips == 1000
 
+    @get_players
+    def test_get_result_with_overbet(self, players, first, second, third, fourth):
+        first.chips = 300
+        second.chips = 600
+        third.chips = 1400
+        fourth.chips = 1700
+        players._order = [0, 1, 2, 3]
+        players._involved_order = [0, 1, 2, 3]
+        first.hand.items = [Card("Qh"), Card("Ah")]
+        second.hand.items = [Card("9d"), Card("Ts")]
+        third.hand.items = [Card("Tc"), Card("Js")]
+        fourth.hand.items = [Card("Ad"), Card("2d")]
+        table = Table("Ks/6c/6h/Td/2c")
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 300)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 600)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 1400)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 1700)
+        assert context.success
+        data = players.get_result(table)
+        assert data["loosers"]["first"] == 300
+        assert data["winners"]["second"] == 1050
+        assert data["winners"]["third"] == 2650
+        assert data["loosers"]["fourth"] == 1400
+        assert players._order == [1, 2, 3]
+        assert first.chips == 0
+        assert second.chips == 1050
+        assert third.chips == 2650
+        assert fourth.chips == 300
+
+    @get_players
+    def test_get_result_with_one_winner(self, players, first, second, third, fourth):
+        first.chips = 1500
+        second.chips = 800
+        third.chips = 400
+        fourth.chips = 1300
+        players._order = [0, 1, 2, 3]
+        players._involved_order = [0, 1, 2, 3]
+        first.hand.items = [Card("Js"), Card("Jd")]
+        second.hand.items = [Card("6h"), Card("7h")]
+        third.hand.items = [Card("Kd"), Card("7c")]
+        fourth.hand.items = [Card("7s"), Card("2c")]
+        table = Table("9d/Jc/8d/8s/Tc")
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.RAISE, 1500)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        players.next_player()
+        players.get_current_dif()
+        players.get_current_abilities()
+        context = players.action(Player.Action.CALL)
+        assert context.success
+        data = players.get_result(table)
+        assert data["winners"]["first"] == 4000
+        assert data["loosers"]["second"] == 800
+        assert data["loosers"]["third"] == 400
+        assert data["loosers"]["fourth"] == 1300
+        assert players._order == [0]
+        assert first.chips == 4000
+        assert second.chips == 0
+        assert third.chips == 0
+        assert fourth.chips == 0
+
 
 class TestGameStage:
     def test_complex(self):

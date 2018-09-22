@@ -334,18 +334,15 @@ class Game:
 
         def get_result(self, table):
             winners, loosers = self._get_result_rank(table)
-            data = {
-                "winners": {w.identifier: w.round_bets for w in winners},
-                "loosers": {},
-            }
-            winners_bets = sum((p.round_bets for p in winners))
-            all_bets = self.bank
+            data = {"winners": {}, "loosers": {}}
+            all_winners_bets = [p.round_bets for p in winners]
+            winners_bets = sum(all_winners_bets)
+            max_winner_bet = max(all_winners_bets)
 
             for looser in loosers:
                 data["loosers"][looser.identifier] = looser.round_bets
-                if looser.round_bets > winners_bets:
-                    over_bet = looser.round_bets - winners_bets
-                    all_bets -= over_bet
+                if looser.round_bets > max_winner_bet:
+                    over_bet = looser.round_bets - max_winner_bet
                     looser.get_chips(over_bet)
                     data["loosers"][looser.identifier] -= over_bet
                 if not looser.chips:
@@ -353,41 +350,60 @@ class Game:
 
             for winner in winners:
                 winner.get_chips(winner.round_bets)
+                data["winners"][winner.identifier] = winner.round_bets
 
             winners_to_pay = winners[:]
-            gain_bets = all_bets - winners_bets
-            while gain_bets > 0:
-                bet_to_pay = min((w.unpaid_bets for w in winners_to_pay))
-                gain = min((bet_to_pay, gain_bets))
+            all_gains = list(data["loosers"].values())
+
+            while all_gains:
                 winners_to_pay_count = len(winners_to_pay)
 
                 if winners_to_pay_count == 1:
+                    gain = sum(all_gains)
                     winner = winners_to_pay[0]
                     winner.get_chips(gain)
                     data["winners"][winner.identifier] += gain
-                    winner.unpaid_bets -= bet_to_pay
+                    winner.unpaid_bets = 0
+                    all_gains = []
                 else:
+                    all_gains_count = len(all_gains)
+                    min_gain_to_pay = min(all_gains)
+                    all_unpaid_bets = [w.unpaid_bets for w in winners_to_pay]
+                    min_bet_to_pay = min(all_unpaid_bets)
+                    max_bet_to_pay = max(all_unpaid_bets)
+
+                    gain_to_pay = (
+                        min_gain_to_pay
+                        if min_bet_to_pay == max_bet_to_pay else
+                        min((min_bet_to_pay, min_gain_to_pay))
+                    )
+
+                    all_gains_indexes = []
+                    for i in range(all_gains_count):
+                        all_gains[i] = all_gains[i] - gain_to_pay
+                        if all_gains[i] == 0:
+                            all_gains_indexes.append(i)
+                    all_gains_indexes.reverse()
+                    for index in all_gains_indexes:
+                        all_gains.pop(index)
+
+                    gain = gain_to_pay * all_gains_count
                     pay = int(gain / winners_to_pay_count)
                     paid_winners_indexes = []
-
                     for i in range(winners_to_pay_count):
                         winner = winners_to_pay[i]
                         winner.get_chips(pay)
                         data["winners"][winner.identifier] += pay
-                        winner.unpaid_bets -= bet_to_pay
+                        winner.unpaid_bets -= gain_to_pay
                         if not winner.unpaid_bets:
                             paid_winners_indexes.append(i)
-
                     for i in range(gain - pay * winners_to_pay_count):
                         winner = winners_to_pay[i]
                         winner.get_chips(1)
                         data["winners"][winner.identifier] += 1
-
                     paid_winners_indexes.reverse()
                     for index in paid_winners_indexes:
                         winners_to_pay.pop(index)
-
-                gain_bets -= gain
 
             return data
 
