@@ -15,18 +15,22 @@
 
 class CardWeightSymbolError(Exception):
     def __init__(self, symbol):
-        hint = f"""
-    '{symbol}' is not a correct card weight symbol.
-    Try to use '1', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'."""
-        super().__init__(hint)
+        super().__init__(
+            f"""
+            '{symbol}' is not a correct card weight symbol.
+            Try to use '1', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'.
+            """
+        )
 
 
 class CardSuitSymbolError(Exception):
     def __init__(self, symbol):
-        hint = f"""
-    '{symbol}' is not a correct card suit symbol.
-    Try to use 'c', 'd', 'h', 's'."""
-        super().__init__(hint)
+        super().__init__(
+            f"""
+            '{symbol}' is not a correct card suit symbol.
+            Try to use 'c', 'd', 'h', 's'.
+            """
+        )
 
 
 class DeckCountTypeError(Exception):
@@ -41,7 +45,9 @@ class DeckCountNumberError(Exception):
 
 class CardsStringTypeError(Exception):
     def __init__(self, cards_string_type):
-        super().__init__(f"Type of Cards 'cards_string' argument need to be 'str' not '{cards_string_type}'.")
+        super().__init__(
+            f"Type of Cards 'cards_string' argument need to be 'str' not '{cards_string_type}'."
+        )
 
 
 class CardsCardTypeError(Exception):
@@ -56,26 +62,27 @@ class ComboCardsTypeError(Exception):
 
 class ComboArgumentsError(Exception):
     def __init__(self):
-        hint = f"""
-    Combo takes keyword aruments only.
-    Try to pass
-        'cards_string'
-        (example: Combo(cards_string='As/Ks/Qs/Js/Ts'))
-    or
-        'cards'
-        (example: Combo(cards=Cards('As/Ks/Qs/Js/Ts')))
-    or
-        'table' and 'hand'
-        (example: Combo(table=Table('As/Ks/Qs'), hand=Hand('Js/Ts'))
-    or
-        'table' and 'hand' and 'nominal_check_needed'
-        (example: Combo(table=Table('As/Ks/Qs'), hand=Hand('Js/Ts'), nominal_check_needed=True)."""
-        super().__init__(hint)
+        super().__init__(
+            """
+                Combo takes keyword aruments only.
+                Examples
+                'cards_string': Combo(cards_string='As/Ks/Qs/Js/Ts');
+                'cards': Combo(cards=Cards('As/Ks/Qs/Js/Ts'));
+                'table' and 'hand': Combo(table=Table('As/Ks/Qs'), hand=Hand('Js/Ts'));
+                'table' and 'hand' and 'nominal_check_needed':
+                    Combo(table=Table('As/Ks/Qs'), hand=Hand('Js/Ts'), nominal_check_needed=True).
+            """
+        )
 
 
 class PlayerActionKindError(Exception):
     def __init__(self, kind):
-        super().__init__(f"'{str(kind)}' is not a legal action kind. Try one of thpoker.game.Player.Action.ALL_KINDS.")
+        super().__init__(
+            f"""
+            '{str(kind)}' is not a legal action kind.
+            Try one of thpoker.game.Player.Action.ALL_KINDS.
+            """
+        )
 
 
 class PlayerActionBetError(Exception):
@@ -85,9 +92,24 @@ class PlayerActionBetError(Exception):
 
 class GamePlayersChipsError(Exception):
     def __init__(self):
-        super().__init__(f"Chips need to be positive integer.")
+        super().__init__("Chips need to be positive integer.")
 
 
 class GamePlayersPlayersError(Exception):
     def __init__(self):
-        super().__init__(f"Players count need to be from 2 to 10.")
+        super().__init__("Players count need to be from 2 to 10.")
+
+
+class GameMissedSettingsError(Exception):
+    def __init__(self, key):
+        super().__init__(f"Missed required '{key}' data from game settings.")
+
+
+class GameWrongBlindesSettingError(Exception):
+    def __init__(self):
+        super().__init__(
+            """
+            'Blindes' setting need to be list of two positive integers.
+            First (small blind) need to be smaller than second (big blind).
+            """
+        )

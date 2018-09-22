@@ -570,3 +570,26 @@ class TestGameStage:
         assert stage.table_size == 5
         stage.depth_increase()
         assert stage.depth_count == 1
+
+
+class TestGame:
+    def test_validation(self):
+        players_box = (Player(1), Player(2))
+        with pytest.raises(exceptions.GameMissedSettingsError):
+            Game({"chips": 1000}, *players_box)
+        with pytest.raises(exceptions.GameMissedSettingsError):
+            Game({"blindes": [10, 20]}, *players_box)
+        with pytest.raises(exceptions.GameWrongBlindesSettingError):
+            Game({"chips": 1000, "blindes": (10, 20)}, *players_box)
+        with pytest.raises(exceptions.GameWrongBlindesSettingError):
+            Game({"chips": 1000, "blindes": [10, 20, 30]}, *players_box)
+        with pytest.raises(exceptions.GameWrongBlindesSettingError):
+            Game({"chips": 1000, "blindes": ["10", 20]}, *players_box)
+        with pytest.raises(exceptions.GameWrongBlindesSettingError):
+            Game({"chips": 1000, "blindes": [10, "20"]}, *players_box)
+        with pytest.raises(exceptions.GameWrongBlindesSettingError):
+            Game({"chips": 1000, "blindes": [-10, 20]}, *players_box)
+        with pytest.raises(exceptions.GameWrongBlindesSettingError):
+            Game({"chips": 1000, "blindes": [10, -20]}, *players_box)
+        with pytest.raises(exceptions.GameWrongBlindesSettingError):
+            Game({"chips": 1000, "blindes": [20, 10]}, *players_box)

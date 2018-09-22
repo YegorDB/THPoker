@@ -16,7 +16,7 @@
 import random
 
 from thpoker.core import Deck, Table, Hand, Combo
-from thpoker.validators import PlayerActionValidator, game_players_validator
+from thpoker.validators import PlayerActionValidator, game_players_validator, game_validator
 
 
 class Context:
@@ -238,7 +238,7 @@ class Game:
                     self._current_index = 0
             else:
                 self._current_index = self._get_next_index()
-            if self.current.with_allin:
+            if self.current.with_allin and not self.global_allin:
                 return self.next_player()
             return self._current_index
 
@@ -456,6 +456,7 @@ class Game:
             self._depth += 1
 
 
+    @game_validator
     def __init__(self, settings, *players):
         self._players = self.Players(settings["chips"], *players)
         self._blindes = settings["blindes"]

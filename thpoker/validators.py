@@ -56,3 +56,19 @@ def game_players_validator(func):
             raise exceptions.GamePlayersPlayersError()
         func(self, chips, *players)
     return wrap
+
+
+def game_validator(func):
+    @wraps(func)
+    def wrap(self, settings, *players):
+        for key in ("chips", "blindes"):
+            if not key in settings:
+                raise exceptions.GameMissedSettingsError(key)
+        if not type(settings["blindes"]) is list or \
+            len(settings["blindes"]) != 2 or \
+                not type(settings["blindes"][0]) is int or not type(settings["blindes"][1]) is int or \
+                    settings["blindes"][0] <= 0 or settings["blindes"][1] <= 0 or \
+                        settings["blindes"][0] >= settings["blindes"][0]:
+            raise exceptions.GameWrongBlindesSettingError()
+        func(self, settings, *players)
+    return wrap
