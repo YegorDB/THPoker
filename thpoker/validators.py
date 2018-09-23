@@ -24,6 +24,7 @@ class CardSymbolValidator:
         self._exception = exception
 
     def __call__(self, init_function):
+        @wraps(init_function)
         def wrap(init_self, symbol):
             symbol = str(symbol)
             if not symbol in set(self._symbols):
@@ -37,6 +38,7 @@ class PlayerActionValidator:
         self._all_kinds = all_kinds
 
     def __call__(self, init_function):
+        @wraps(init_function)
         def wrap(init_self, kind, bet=0):
             if not kind in self._all_kinds:
                 raise exceptions.PlayerActionKindError(kind)

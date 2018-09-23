@@ -14,6 +14,7 @@
 
 
 import random
+from functools import wraps
 
 from thpoker.core import Deck, Table, Hand, Combo
 from thpoker.validators import PlayerActionValidator, game_players_validator, game_validator
@@ -201,6 +202,12 @@ class Game:
     ACTION_NEEDED = 'action_needed'
     STAGE_NEEDED = 'stage_needed'
     ROUND_NEEDED = 'round_needed'
+    POINT_DESCRIPTION = {
+        ACTION_NEEDED: 'Redy to accept action.',
+        STAGE_NEEDED: 'Redy to start new stage.',
+        ROUND_NEEDED: 'Redy to start new round.',
+        THE_END: 'Game has been ended.',
+    }
 
     class Players:
         """
@@ -456,6 +463,19 @@ class Game:
             self._depth += 1
 
 
+    class PointCheck:
+        def __init__(self, nedded_point):
+            self._nedded_point = nedded_point
+
+        def __call__(self, method):
+            @wraps(method)
+            def wrap(self, *args, **kwargs):
+                if self._point != nedded_point:
+                    return Context(success=False, **self._get_context_data())
+                method(self, *args, **kwargs)
+            return wrap
+
+
     @game_validator
     def __init__(self, settings, *players):
         self._players = self.Players(settings["chips"], *players)
@@ -464,10 +484,10 @@ class Game:
         self._table = Table()
         self._deck = Deck()
         self._result = None
+        self._point = self.ROUND_NEEDED
 
+    @PointCheck(ROUND_NEEDED)
     def new_round(self):
-        if self._state == self.THE_END:
-            return Context(success=False, description="Game over.", **self._get_context_data(self.THE_END))
         self._players.new_round()
         self._table.clean()
         self._deck.refresh()
@@ -476,9 +496,8 @@ class Game:
         self._result = None
         return self._new_stage()
 
+    @PointCheck(STAGE_NEEDED)
     def new_stage(self):
-        if self._state in (self.SHOW_DOWN, self.FOLD):
-            return Context(success=False, description="Round over.", **self._get_context_data(self.ROUND_NEEDED))
         self._stage.next()
         if self._players.rolling_count == 2 and self._stage.name == self.Stage.FLOP:
             self._players.change_order()
@@ -492,10 +511,8 @@ class Game:
         if self._state != self.ALL_IN:
             self._players.get_current_dif()
             self._players.get_current_abilities()
-            return Context(
-                success=True,
-                description="Redy to accept action.",
-                **self._get_context_data(self.ACTION_NEEDED, True))
+            self._point = self.ACTION_NEEDED
+            return Context(success=True, **self._get_context_data())
         elif self._stage.name == self.Stage.RIVER:
             return self._show_down()
         return self._stage_end()
@@ -512,6 +529,7 @@ class Game:
             context = Context(success=True)
         return context
 
+    @PointCheck(ACTION_NEEDED)
     def action(self, kind, bet=0):
         action_result = self._players.action(kind, bet)
         if not action_result.success:
@@ -528,10 +546,8 @@ class Game:
                 self._stage.depth_increase()
             self._players.get_current_dif()
             self._players.get_current_abilities()
-            return Context(
-                success=True,
-                description="Redy to accept action.",
-                **self._get_context_data(self.ACTION_NEEDED, True))
+            self._point = self.ACTION_NEEDED
+            return Context(success=True, **self._get_context_data())
         elif self._stage.name == self.Stage.RIVER:
             return self._show_down()
         return self._stage_end()
@@ -543,45 +559,39 @@ class Game:
 
     def _stage_end(self):
         if self._state == self.THE_END:
-            point = self.THE_END
-            description = "Game has been ended."
+            self._point = self.THE_END
         elif self._state in (self.SHOW_DOWN, self.FOLD):
             if self._players.rolling_count != 2 or self._stage.name == self.Stage.PRE_FLOP:
                 self._players.change_order()
-            point = self.ROUND_NEEDED
-            description = "Round has been ended."
+            self._point = self.ROUND_NEEDED
         else:
-            point = self.STAGE_NEEDED
-            description = "Stage has been ended."
-        return Context(
-            success=True,
-            description=description,
-            **self._get_context_data(point, True))
+            self._point = self.STAGE_NEEDED
+        return Context(success=True, **self._get_context_data())
 
-    def _get_context_data(self, point, additional=False):
-        data = {"point": point}
-        if additional:
-            data.update({
-                "table": self._table.items[:],
-                "state": self._state,
-                "stage_name": self._stage.name,
-                "stage_depth": self._stage.depth_count,
-                "bank": self._players.bank,
-                "result": self._result,
-                "current_player": self._players.current.identifier,
-                "players": {
-                    player.identifier: {
-                        "chips": player.chips,
-                        "stage_bets": player.stage_bets,
-                        "round_bets": player.round_bets,
-                        "dif": player.dif,
-                        "abilities": player.abilities,
-                        "cards": player.hand.items[:],
-                        "hand_type": player.hand.type,
-                        "combo": player.combo,
-                        "last_action": player.last_action,
-                    }
-                    for player in self._players
+    def _get_context_data(self):
+        return {
+            "description": self.POINT_DESCRIPTION[self._point],
+            "point": self._point,
+            "table": self._table.items[:],
+            "state": self._state,
+            "stage_name": self._stage.name,
+            "stage_depth": self._stage.depth_count,
+            "bank": self._players.bank,
+            "result": self._result,
+            "current_player": self._players.current.identifier,
+            "players": {
+                player.identifier: {
+                    "chips": player.chips,
+                    "stage_bets": player.stage_bets,
+                    "round_bets": player.round_bets,
+                    "dif": player.dif,
+                    "abilities": player.abilities,
+                    "cards": player.hand.items[:],
+                    "hand_type": player.hand.type,
+                    "combo": player.combo,
+                    "last_action_kind": player.last_action.kind,
+                    "last_action_bet": player.last_action.bet,
                 }
-            })
-        return data
+                for player in self._players
+            }
+        }
