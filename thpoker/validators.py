@@ -70,7 +70,7 @@ def game_validator(func):
             len(settings["blindes"]) != 2 or \
                 not type(settings["blindes"][0]) is int or not type(settings["blindes"][1]) is int or \
                     settings["blindes"][0] <= 0 or settings["blindes"][1] <= 0 or \
-                        settings["blindes"][0] >= settings["blindes"][0]:
+                        settings["blindes"][0] >= settings["blindes"][1]:
             raise exceptions.GameWrongBlindesSettingError()
         func(self, settings, *players)
     return wrap
