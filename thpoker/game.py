@@ -552,7 +552,7 @@ class Game:
             self._state = self.ALL_IN
         elif self._players.have_dif or not self._players.current_is_last and self._stage.depth_count == 0:
             current_index = self._players.next_player(after_fold=fold_happend)
-            if current_index == 0:
+            if current_index == 0 and not fold_happend:
                 self._stage.depth_increase()
             self._players.get_current_dif()
             self._players.get_current_abilities()
