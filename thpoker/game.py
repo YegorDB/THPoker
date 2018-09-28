@@ -223,6 +223,8 @@ class Game:
             self._max_round_bet = 0
             self.bank = 0
             self.last_action = None
+            self._folded = [];
+            self.after_fold = False
             for player in self:
                 player.get_chips(chips)
 
@@ -237,15 +239,13 @@ class Game:
             return self[self._current_index]
 
         def _get_next_index(self):
-            return 0 if self._current_index == len(self._involved_order) - 1 else self._current_index + 1
+            return 0 if self._current_index >= len(self._involved_order) - 1 else self._current_index + 1
 
-        def next_player(self, after_fold=False): # transition move rights
-            if after_fold:
-                self._involved_order.pop(self._current_index)
-                if self._current_index == len(self._involved_order):
-                    self._current_index = 0
-            else:
+        def next_player(self): # transition move rights
+            if not self.after_fold:
                 self._current_index = self._get_next_index()
+            elif self._current_index == len(self._involved_order):
+                self._current_index = 0
             if self.current.with_allin and not self.global_allin:
                 return self.next_player()
             return self._current_index
@@ -273,6 +273,10 @@ class Game:
             return context
 
         @property
+        def active_count(self):
+            return len(tuple(filter(lambda p: p.chips > 0, self._scroll)))
+
+        @property
         def rolling_count(self):
             return len(self._order)
 
@@ -292,8 +296,13 @@ class Game:
                 }
                 if self.current.round_bets > self._max_round_bet:
                     self._max_round_bet = self.current.round_bets
-                if self.current.last_action.kind == Player.Action.FOLD and len(self._involved_order) == 2:
-                    self[abs(self._current_index - 1)].get_chips(self.bank)
+                if self.current.last_action.kind == Player.Action.FOLD:
+                    self.after_fold = True
+                    if self.current.round_bets:
+                        self._folded.append(self.current)
+                    self._involved_order.pop(self._current_index)
+                else:
+                    self.after_fold = False
             return context
 
         def get_current_dif(self):
@@ -305,8 +314,6 @@ class Game:
         @property
         def have_dif(self):
             for player in self:
-                if player is self.current:
-                    continue
                 if not player.with_allin:
                     player.get_dif(self._max_round_bet)
                     if player.dif:
@@ -327,7 +334,7 @@ class Game:
 
         def _get_result_rank(self, table):
             winners = []
-            loosers = []
+            loosers = self._folded[:]
             best_combo = None
             for player in self:
                 combo = player.combo or player.get_combo(table)
@@ -358,8 +365,6 @@ class Game:
                     over_bet = looser.round_bets - max_winner_bet
                     looser.get_chips(over_bet)
                     data["loosers"][looser.identifier] -= over_bet
-                if not looser.chips:
-                    self._order.pop(self._order.index(self._scroll.index(looser)))
 
             for winner in winners:
                 winner.get_chips(winner.round_bets)
@@ -420,6 +425,20 @@ class Game:
 
             return data
 
+        def get_folded_result(self):
+            winner = self[0]
+            winner.get_chips(self.bank)
+            data = {"winners": {winner.identifier: self.bank}, "loosers": {}}
+            for looser in self._folded:
+                data["loosers"][looser.identifier] = looser.round_bets
+
+            return data
+
+        def remove_inactive(self):
+            for player in self:
+                if not player.chips:
+                    self._order.pop(self._order.index(self._scroll.index(player)))
+
         def new_stage(self):
             for player in self:
                 player.new_stage()
@@ -431,6 +450,7 @@ class Game:
                 player.new_round()
             self._max_round_bet = 0
             self.bank = 0
+            self._folded = []
 
 
     class Stage:
@@ -496,6 +516,9 @@ class Game:
 
     @PointCheck(ROUND_NEEDED)
     def new_round(self):
+        self._players.remove_inactive()
+        if self._players.rolling_count != 2 or self._stage.name == self.Stage.PRE_FLOP:
+            self._players.change_order()
         self._players.new_round()
         self._table.clean()
         self._deck.refresh()
@@ -542,17 +565,15 @@ class Game:
         action_result = self._players.action(kind, bet)
         if not action_result.success:
             return action_result
-        fold_happend = False
-        if self._players.current.last_action.kind == Player.Action.FOLD:
-            fold_happend = True
-            if self._players.involved_count == 2:
-                self._state = self.FOLD
-                return self._stage_end()
-        if self._players.current.last_action.kind == Player.Action.ALL_IN and self._players.global_allin:
+        if self._players.after_fold and self._players.involved_count == 1:
+            self._result = self._players.get_folded_result()
+            self._state = self.FOLD
+            return self._stage_end()
+        if self._players.global_allin:
             self._state = self.ALL_IN
-        elif self._players.have_dif or not self._players.current_is_last and self._stage.depth_count == 0:
-            current_index = self._players.next_player(after_fold=fold_happend)
-            if current_index == 0 and not fold_happend:
+        if self._players.have_dif or not self._players.current_is_last and self._stage.depth_count == 0:
+            current_index = self._players.next_player()
+            if current_index == 0 and not self._players.after_fold:
                 self._stage.depth_increase()
             self._players.get_current_dif()
             self._players.get_current_abilities()
@@ -564,15 +585,13 @@ class Game:
 
     def _show_down(self):
         self._result = self._players.get_result(self._table)
-        self._state = self.THE_END if self._players.rolling_count == 1 else self.SHOW_DOWN
+        self._state = self.THE_END if self._players.active_count == 1 else self.SHOW_DOWN
         return self._stage_end()
 
     def _stage_end(self):
         if self._state == self.THE_END:
             self._point = self.THE_END
         elif self._state in (self.SHOW_DOWN, self.FOLD):
-            if self._players.rolling_count != 2 or self._stage.name == self.Stage.PRE_FLOP:
-                self._players.change_order()
             self._point = self.ROUND_NEEDED
         else:
             self._point = self.STAGE_NEEDED
@@ -585,14 +604,18 @@ class Game:
             "last_action": self._players.last_action,
         }
 
-        if self._point == self.ACTION_NEEDED:
+        if self._point in (self.ACTION_NEEDED, self.ROUND_NEEDED):
             data.update({
                 "table": self._table.items[:],
                 "state": self._state,
                 "stage": {"name": self._stage.name, "depth": self._stage.depth_count},
                 "bank": self._players.bank,
                 "result": self._result,
-                "current_player": self._players.current.identifier,
+                **(
+                    {"current_player": self._players.current.identifier}
+                    if self._point == self.ACTION_NEEDED else
+                    {}
+                ),
                 "players": {
                     player.identifier: {
                         "chips": player.chips,
@@ -600,7 +623,8 @@ class Game:
                         "round_bets": player.round_bets,
                         **(
                             {"dif": player.dif, "abilities": player.abilities,}
-                            if player.identifier == self._players.current.identifier else
+                            if self._point == self.ACTION_NEEDED and \
+                                player.identifier == self._players.current.identifier else
                             {}
                         ),
                         "cards": player.hand.items[:],
