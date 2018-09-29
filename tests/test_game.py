@@ -244,14 +244,14 @@ class TestGamePlayers:
         players._order = [0, 1, 2, 3]
         players._involved_order = players._order[:]
         assert players.current is first
-        assert players.next_player() == 1
+        assert players.next_player() == (1, True)
         assert players.current is second
-        assert players.next_player() == 2
+        assert players.next_player() == (2, True)
         assert players.current is third
-        assert players.next_player() == 3
+        assert players.next_player() == (3, True)
         assert players.current is fourth
         assert players.current_is_last
-        assert players.next_player() == 0
+        assert players.next_player() == (0, True)
         players.change_order()
         assert players._current_index == 0
         assert players.current is second
@@ -291,24 +291,24 @@ class TestGamePlayers:
                 assert players.current.abilities[Player.Action.CHECK] == False
             context = players.action(Player.Action.RAISE, (i + 1) * 20)
             assert context.success
-            assert players.next_player() == i + 1
+            assert players.next_player() == (i + 1, True)
         assert players.have_dif
         assert players.bank == 120
         players.get_current_dif()
         players.get_current_abilities()
         context = players.action(Player.Action.CALL)
         assert context.success
-        assert players.next_player() == 0
+        assert players.next_player() == (0, True)
         players.get_current_dif()
         players.get_current_abilities()
         context = players.action(Player.Action.FOLD)
         assert context.success
-        assert players.next_player() == 0
+        assert players.next_player() == (0, False)
         players.get_current_dif()
         players.get_current_abilities()
         context = players.action(Player.Action.FOLD)
         assert context.success
-        assert players.next_player() == 0
+        assert players.next_player() == (0, False)
         assert players.rolling_count == 4
         assert players.involved_count == 2
         assert players.bank == 180
@@ -401,6 +401,8 @@ class TestGamePlayers:
         assert data["winners"]["third"] == 967
         assert data["winners"]["fourth"] == 966
         assert players.active_count == 3
+        players.remove_inactive()
+        assert players._order == [0, 2, 3]
         assert first.chips == 1367
         assert second.chips == 0
         assert third.chips == 967
@@ -501,6 +503,8 @@ class TestGamePlayers:
         assert data["winners"]["third"] == 2650
         assert data["loosers"]["fourth"] == 1400
         assert players.active_count == 3
+        players.remove_inactive()
+        assert players._order == [1, 2, 3]
         assert first.chips == 0
         assert second.chips == 1050
         assert third.chips == 2650
@@ -544,6 +548,8 @@ class TestGamePlayers:
         assert data["loosers"]["third"] == 400
         assert data["loosers"]["fourth"] == 1300
         assert players.active_count == 1
+        players.remove_inactive()
+        assert players._order == [0]
         assert first.chips == 4000
         assert second.chips == 0
         assert third.chips == 0
@@ -605,6 +611,8 @@ class TestGame:
         assert not game.action(Player.Action.CALL).success
 
         context = game.new_round()
+        assert game._players._order == [0, 1, 2, 3]
+        assert game._players._involved_order == [0, 1, 2, 3]
         assert context.success
         assert context.point == Game.ACTION_NEEDED
         assert len(context.table) == 0
@@ -1622,3 +1630,647 @@ class TestGame:
         assert len(context.players[3]["cards"]) == 2
         assert context.players[3]["combo"].type == Combo.TWO_PAIRS
         assert context.players[3]["last_action"] == {"kind": Player.Action.ALL_IN, "bet": 340}
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.action(Player.Action.CALL).success
+        assert not game.new_stage().success
+        context = game.new_round()
+        assert game._players._order == [2, 0, 1]
+        assert game._players._involved_order == [2, 0, 1]
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 0
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.PRE_FLOP, "depth": 0}
+        assert context.bank == 30
+        assert context.result == None
+        assert context.last_action == {"identifier": 1, "kind": Player.Action.BLIND_BET, "bet": 20}
+        assert context.current_player == 2
+
+        assert context.players[0]["chips"] == 730
+        assert context.players[0]["stage_bets"] == 10
+        assert context.players[0]["round_bets"] == 10
+        with pytest.raises(KeyError):
+            context.players[0]["dif"]
+        with pytest.raises(KeyError):
+            context.players[0]["abilities"]
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] == {"kind": Player.Action.BLIND_BET, "bet": 10}
+
+        assert context.players[1]["chips"] == 980
+        assert context.players[1]["stage_bets"] == 20
+        assert context.players[1]["round_bets"] == 20
+        with pytest.raises(KeyError):
+            context.players[1]["dif"]
+        with pytest.raises(KeyError):
+            context.players[1]["abilities"]
+        assert len(context.players[1]["cards"]) == 2
+        assert context.players[1]["combo"] is None
+        assert context.players[1]["last_action"] == {"kind": Player.Action.BLIND_BET, "bet": 20}
+
+        assert context.players[2]["chips"] == 2260
+        assert context.players[2]["stage_bets"] == 0
+        assert context.players[2]["round_bets"] == 0
+        assert context.players[2]["dif"] == 20
+        assert context.players[2]["abilities"] == {
+            Player.Action.RAISE: {"min": 21, "max": 2260},
+            Player.Action.CALL: 20,
+            Player.Action.CHECK: False,
+        }
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] is None
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        game._players[0].hand.items = [Card("2d"), Card("7s")]
+        game._players[1].hand.items = [Card("Kc"), Card("Js")]
+        game._players[2].hand.items = [Card("Qh"), Card("9h")]
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.CALL)
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 0
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.PRE_FLOP, "depth": 0}
+        assert context.bank == 50
+        assert context.result == None
+        assert context.last_action == {"identifier": 2, "kind": Player.Action.CALL, "bet": 20}
+        assert context.current_player == 0
+
+        assert context.players[0]["chips"] == 730
+        assert context.players[0]["stage_bets"] == 10
+        assert context.players[0]["round_bets"] == 10
+        assert context.players[0]["dif"] == 10
+        assert context.players[0]["abilities"] == {
+            Player.Action.RAISE: {"min": 11, "max": 730},
+            Player.Action.CALL: 10,
+            Player.Action.CHECK: False,
+        }
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] == {"kind": Player.Action.BLIND_BET, "bet": 10}
+
+        assert context.players[1]["chips"] == 980
+        assert context.players[1]["stage_bets"] == 20
+        assert context.players[1]["round_bets"] == 20
+        with pytest.raises(KeyError):
+            context.players[1]["dif"]
+        with pytest.raises(KeyError):
+            context.players[1]["abilities"]
+        assert len(context.players[1]["cards"]) == 2
+        assert context.players[1]["combo"] is None
+        assert context.players[1]["last_action"] == {"kind": Player.Action.BLIND_BET, "bet": 20}
+
+        assert context.players[2]["chips"] == 2240
+        assert context.players[2]["stage_bets"] == 20
+        assert context.players[2]["round_bets"] == 20
+        with pytest.raises(KeyError):
+            context.players[2]["dif"]
+        with pytest.raises(KeyError):
+            context.players[2]["abilities"]
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] == {"kind": Player.Action.CALL, "bet": 20}
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.CALL)
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 0
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.PRE_FLOP, "depth": 0}
+        assert context.bank == 60
+        assert context.result == None
+        assert context.last_action == {"identifier": 0, "kind": Player.Action.CALL, "bet": 10}
+        assert context.current_player == 1
+
+        assert context.players[0]["chips"] == 720
+        assert context.players[0]["stage_bets"] == 20
+        assert context.players[0]["round_bets"] == 20
+        with pytest.raises(KeyError):
+            context.players[0]["dif"]
+        with pytest.raises(KeyError):
+            context.players[0]["abilities"]
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] == {"kind": Player.Action.CALL, "bet": 10}
+
+        assert context.players[1]["chips"] == 980
+        assert context.players[1]["stage_bets"] == 20
+        assert context.players[1]["round_bets"] == 20
+        assert context.players[1]["dif"] == 0
+        assert context.players[1]["abilities"] == {
+            Player.Action.RAISE: {"min": 1, "max": 980},
+            Player.Action.CALL: 0,
+            Player.Action.CHECK: True,
+        }
+        assert len(context.players[1]["cards"]) == 2
+        assert context.players[1]["combo"] is None
+        assert context.players[1]["last_action"] == {"kind": Player.Action.BLIND_BET, "bet": 20}
+
+        assert context.players[2]["chips"] == 2240
+        assert context.players[2]["stage_bets"] == 20
+        assert context.players[2]["round_bets"] == 20
+        with pytest.raises(KeyError):
+            context.players[2]["dif"]
+        with pytest.raises(KeyError):
+            context.players[2]["abilities"]
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] == {"kind": Player.Action.CALL, "bet": 20}
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.CHECK)
+        assert context.success
+        assert context.point == Game.STAGE_NEEDED
+        assert context.last_action == {"identifier": 1, "kind": Player.Action.CHECK, "bet": 0}
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.action(Player.Action.CALL).success
+        context = game.new_stage()
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 3
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.FLOP, "depth": 0}
+        assert context.bank == 60
+        assert context.result == None
+        assert context.last_action == None
+        assert context.current_player == 2
+
+        assert context.players[0]["chips"] == 720
+        assert context.players[0]["stage_bets"] == 0
+        assert context.players[0]["round_bets"] == 20
+        with pytest.raises(KeyError):
+            context.players[0]["dif"]
+        with pytest.raises(KeyError):
+            context.players[0]["abilities"]
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] is None
+
+        assert context.players[1]["chips"] == 980
+        assert context.players[1]["stage_bets"] == 0
+        assert context.players[1]["round_bets"] == 20
+        with pytest.raises(KeyError):
+            context.players[1]["dif"]
+        with pytest.raises(KeyError):
+            context.players[1]["abilities"]
+        assert len(context.players[1]["cards"]) == 2
+        assert context.players[1]["combo"] is None
+        assert context.players[1]["last_action"] is None
+
+        assert context.players[2]["chips"] == 2240
+        assert context.players[2]["stage_bets"] == 0
+        assert context.players[2]["round_bets"] == 20
+        assert context.players[2]["dif"] == 0
+        assert context.players[2]["abilities"] == {
+            Player.Action.RAISE: {"min": 1, "max": 2240},
+            Player.Action.CALL: 0,
+            Player.Action.CHECK: True,
+        }
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] is None
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        game._table.items = [Card("8s"), Card("Ad"), Card("8d")]
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.CHECK)
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 3
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.FLOP, "depth": 0}
+        assert context.bank == 60
+        assert context.result == None
+        assert context.last_action == {"identifier": 2, "kind": Player.Action.CHECK, "bet": 0}
+        assert context.current_player == 0
+
+        assert context.players[0]["chips"] == 720
+        assert context.players[0]["stage_bets"] == 0
+        assert context.players[0]["round_bets"] == 20
+        assert context.players[0]["dif"] == 0
+        assert context.players[0]["abilities"] == {
+            Player.Action.RAISE: {"min": 1, "max": 720},
+            Player.Action.CALL: 0,
+            Player.Action.CHECK: True,
+        }
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] is None
+
+        assert context.players[1]["chips"] == 980
+        assert context.players[1]["stage_bets"] == 0
+        assert context.players[1]["round_bets"] == 20
+        with pytest.raises(KeyError):
+            context.players[1]["dif"]
+        with pytest.raises(KeyError):
+            context.players[1]["abilities"]
+        assert len(context.players[1]["cards"]) == 2
+        assert context.players[1]["combo"] is None
+        assert context.players[1]["last_action"] is None
+
+        assert context.players[2]["chips"] == 2240
+        assert context.players[2]["stage_bets"] == 0
+        assert context.players[2]["round_bets"] == 20
+        with pytest.raises(KeyError):
+            context.players[2]["dif"]
+        with pytest.raises(KeyError):
+            context.players[2]["abilities"]
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] == {"kind": Player.Action.CHECK, "bet": 0}
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.RAISE, 60)
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 3
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.FLOP, "depth": 0}
+        assert context.bank == 120
+        assert context.result == None
+        assert context.last_action == {"identifier": 0, "kind": Player.Action.RAISE, "bet": 60}
+        assert context.current_player == 1
+
+        assert context.players[0]["chips"] == 660
+        assert context.players[0]["stage_bets"] == 60
+        assert context.players[0]["round_bets"] == 80
+        with pytest.raises(KeyError):
+            context.players[0]["dif"]
+        with pytest.raises(KeyError):
+            context.players[0]["abilities"]
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] == {"kind": Player.Action.RAISE, "bet": 60}
+
+        assert context.players[1]["chips"] == 980
+        assert context.players[1]["stage_bets"] == 0
+        assert context.players[1]["round_bets"] == 20
+        assert context.players[1]["dif"] == 60
+        assert context.players[1]["abilities"] == {
+            Player.Action.RAISE: {"min": 61, "max": 980},
+            Player.Action.CALL: 60,
+            Player.Action.CHECK: False,
+        }
+        assert len(context.players[1]["cards"]) == 2
+        assert context.players[1]["combo"] is None
+        assert context.players[1]["last_action"] is None
+
+        assert context.players[2]["chips"] == 2240
+        assert context.players[2]["stage_bets"] == 0
+        assert context.players[2]["round_bets"] == 20
+        with pytest.raises(KeyError):
+            context.players[2]["dif"]
+        with pytest.raises(KeyError):
+            context.players[2]["abilities"]
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] == {"kind": Player.Action.CHECK, "bet": 0}
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.CALL)
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 3
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.FLOP, "depth": 1}
+        assert context.bank == 180
+        assert context.result == None
+        assert context.last_action == {"identifier": 1, "kind": Player.Action.CALL, "bet": 60}
+        assert context.current_player == 2
+
+        assert context.players[0]["chips"] == 660
+        assert context.players[0]["stage_bets"] == 60
+        assert context.players[0]["round_bets"] == 80
+        with pytest.raises(KeyError):
+            context.players[0]["dif"]
+        with pytest.raises(KeyError):
+            context.players[0]["abilities"]
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] == {"kind": Player.Action.RAISE, "bet": 60}
+
+        assert context.players[1]["chips"] == 920
+        assert context.players[1]["stage_bets"] == 60
+        assert context.players[1]["round_bets"] == 80
+        with pytest.raises(KeyError):
+            context.players[1]["dif"]
+        with pytest.raises(KeyError):
+            context.players[1]["abilities"]
+        assert len(context.players[1]["cards"]) == 2
+        assert context.players[1]["combo"] is None
+        assert context.players[1]["last_action"] == {"kind": Player.Action.CALL, "bet": 60}
+
+        assert context.players[2]["chips"] == 2240
+        assert context.players[2]["stage_bets"] == 0
+        assert context.players[2]["round_bets"] == 20
+        assert context.players[2]["dif"] == 60
+        assert context.players[2]["abilities"] == {
+            Player.Action.RAISE: {"min": 61, "max": 2240},
+            Player.Action.CALL: 60,
+            Player.Action.CHECK: False,
+        }
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] == {"kind": Player.Action.CHECK, "bet": 0}
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.CALL)
+        assert context.success
+        assert context.point == Game.STAGE_NEEDED
+        assert context.last_action == {"identifier": 2, "kind": Player.Action.CALL, "bet": 60}
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.action(Player.Action.CALL).success
+        context = game.new_stage()
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 4
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.TURN, "depth": 0}
+        assert context.bank == 240
+        assert context.result == None
+        assert context.last_action == None
+        assert context.current_player == 2
+
+        assert context.players[0]["chips"] == 660
+        assert context.players[0]["stage_bets"] == 0
+        assert context.players[0]["round_bets"] == 80
+        with pytest.raises(KeyError):
+            context.players[0]["dif"]
+        with pytest.raises(KeyError):
+            context.players[0]["abilities"]
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] is None
+
+        assert context.players[1]["chips"] == 920
+        assert context.players[1]["stage_bets"] == 0
+        assert context.players[1]["round_bets"] == 80
+        with pytest.raises(KeyError):
+            context.players[1]["dif"]
+        with pytest.raises(KeyError):
+            context.players[1]["abilities"]
+        assert len(context.players[1]["cards"]) == 2
+        assert context.players[1]["combo"] is None
+        assert context.players[1]["last_action"] is None
+
+        assert context.players[2]["chips"] == 2180
+        assert context.players[2]["stage_bets"] == 0
+        assert context.players[2]["round_bets"] == 80
+        assert context.players[2]["dif"] == 0
+        assert context.players[2]["abilities"] == {
+            Player.Action.RAISE: {"min": 1, "max": 2180},
+            Player.Action.CALL: 0,
+            Player.Action.CHECK: True,
+        }
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] is None
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        game._table.items = [Card("8s"), Card("Ad"), Card("8d"), Card("4d")]
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.CHECK)
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 4
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.TURN, "depth": 0}
+        assert context.bank == 240
+        assert context.result == None
+        assert context.last_action == {"identifier": 2, "kind": Player.Action.CHECK, "bet": 0}
+        assert context.current_player == 0
+
+        assert context.players[0]["chips"] == 660
+        assert context.players[0]["stage_bets"] == 0
+        assert context.players[0]["round_bets"] == 80
+        assert context.players[0]["dif"] == 0
+        assert context.players[0]["abilities"] == {
+            Player.Action.RAISE: {"min": 1, "max": 660},
+            Player.Action.CALL: 0,
+            Player.Action.CHECK: True,
+        }
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] is None
+
+        assert context.players[1]["chips"] == 920
+        assert context.players[1]["stage_bets"] == 0
+        assert context.players[1]["round_bets"] == 80
+        with pytest.raises(KeyError):
+            context.players[1]["dif"]
+        with pytest.raises(KeyError):
+            context.players[1]["abilities"]
+        assert len(context.players[1]["cards"]) == 2
+        assert context.players[1]["combo"] is None
+        assert context.players[1]["last_action"] is None
+
+        assert context.players[2]["chips"] == 2180
+        assert context.players[2]["stage_bets"] == 0
+        assert context.players[2]["round_bets"] == 80
+        with pytest.raises(KeyError):
+            context.players[2]["dif"]
+        with pytest.raises(KeyError):
+            context.players[2]["abilities"]
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] == {"kind": Player.Action.CHECK, "bet": 0}
+
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.RAISE, 200)
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 4
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.TURN, "depth": 0}
+        assert context.bank == 440
+        assert context.result == None
+        assert context.last_action == {"identifier": 0, "kind": Player.Action.RAISE, "bet": 200}
+        assert context.current_player == 1
+
+        assert context.players[0]["chips"] == 460
+        assert context.players[0]["stage_bets"] == 200
+        assert context.players[0]["round_bets"] == 280
+        with pytest.raises(KeyError):
+            context.players[0]["dif"]
+        with pytest.raises(KeyError):
+            context.players[0]["abilities"]
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] == {"kind": Player.Action.RAISE, "bet": 200}
+
+        assert context.players[1]["chips"] == 920
+        assert context.players[1]["stage_bets"] == 0
+        assert context.players[1]["round_bets"] == 80
+        assert context.players[1]["dif"] == 200
+        assert context.players[1]["abilities"] == {
+            Player.Action.RAISE: {"min": 201, "max": 920},
+            Player.Action.CALL: 200,
+            Player.Action.CHECK: False,
+        }
+        assert len(context.players[1]["cards"]) == 2
+        assert context.players[1]["combo"] is None
+        assert context.players[1]["last_action"] is None
+
+        assert context.players[2]["chips"] == 2180
+        assert context.players[2]["stage_bets"] == 0
+        assert context.players[2]["round_bets"] == 80
+        with pytest.raises(KeyError):
+            context.players[2]["dif"]
+        with pytest.raises(KeyError):
+            context.players[2]["abilities"]
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] == {"kind": Player.Action.CHECK, "bet": 0}
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.FOLD)
+        assert context.success
+        assert context.point == Game.ACTION_NEEDED
+        assert len(context.table) == 4
+        assert context.state == Game.NORMAL
+        assert context.stage == {"name": Game.Stage.TURN, "depth": 1}
+        assert context.bank == 440
+        assert context.result == None
+        assert context.last_action == {"identifier": 1, "kind": Player.Action.FOLD, "bet": 0}
+        assert context.current_player == 2
+
+        assert context.players[0]["chips"] == 460
+        assert context.players[0]["stage_bets"] == 200
+        assert context.players[0]["round_bets"] == 280
+        with pytest.raises(KeyError):
+            context.players[0]["dif"]
+        with pytest.raises(KeyError):
+            context.players[0]["abilities"]
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] == {"kind": Player.Action.RAISE, "bet": 200}
+
+        with pytest.raises(KeyError):
+            context.players[1]
+
+        assert context.players[2]["chips"] == 2180
+        assert context.players[2]["stage_bets"] == 0
+        assert context.players[2]["round_bets"] == 80
+        assert context.players[2]["dif"] == 200
+        assert context.players[2]["abilities"] == {
+            Player.Action.RAISE: {"min": 201, "max": 2180},
+            Player.Action.CALL: 200,
+            Player.Action.CHECK: False,
+        }
+        assert len(context.players[2]["cards"]) == 2
+        assert context.players[2]["combo"] is None
+        assert context.players[2]["last_action"] == {"kind": Player.Action.CHECK, "bet": 0}
+
+        #####################################################
+        #####################################################
+        #####################################################
+
+        assert not game.new_round().success
+        assert not game.new_stage().success
+        context = game.action(Player.Action.FOLD)
+        assert context.success
+        assert context.point == Game.ROUND_NEEDED
+        assert len(context.table) == 4
+        assert context.state == Game.FOLD
+        assert context.stage == {"name": Game.Stage.TURN, "depth": 1}
+        assert context.bank == 440
+        assert context.result == {"winners": {0: 440}, "loosers": {1: 80, 2: 80}}
+        assert context.last_action == {"identifier": 2, "kind": Player.Action.FOLD, "bet": 0}
+        with pytest.raises(AttributeError):
+            context.current_player
+
+        assert context.players[0]["chips"] == 900
+        assert context.players[0]["stage_bets"] == 200
+        assert context.players[0]["round_bets"] == 280
+        with pytest.raises(KeyError):
+            context.players[0]["dif"]
+        with pytest.raises(KeyError):
+            context.players[0]["abilities"]
+        assert len(context.players[0]["cards"]) == 2
+        assert context.players[0]["combo"] is None
+        assert context.players[0]["last_action"] == {"kind": Player.Action.RAISE, "bet": 200}
+
+        with pytest.raises(KeyError):
+            context.players[1]
+
+        with pytest.raises(KeyError):
+            context.players[2]

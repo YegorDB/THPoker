@@ -177,6 +177,7 @@ class Player:
         self.round_bets = 0
         self.unpaid_bets = 0
         self.combo = None
+        self.with_allin = False
         self.hand.clean()
 
 
@@ -216,10 +217,12 @@ class Game:
 
         @game_players_validator
         def __init__(self, chips, *players):
+            players_count = len(players)
             self._scroll = players
-            self._order = self._get_order(len(players))
+            self._order = self._get_order(players_count)
             self._involved_order = self._order[:]
             self._current_index = 0 # active player's index
+            self._big_blind_index = players_count - 1
             self._max_round_bet = 0
             self.bank = 0
             self.last_action = None
@@ -242,20 +245,25 @@ class Game:
             return 0 if self._current_index >= len(self._involved_order) - 1 else self._current_index + 1
 
         def next_player(self): # transition move rights
+            changed = False
             if not self.after_fold:
                 self._current_index = self._get_next_index()
+                changed = True
             elif self._current_index == len(self._involved_order):
                 self._current_index = 0
+                changed = True
             if self.current.with_allin and not self.global_allin:
                 return self.next_player()
-            return self._current_index
+            return self._current_index, changed
 
         @property
         def current_is_last(self):
             return self._get_next_index() == 0
 
         def change_order(self):
-            self._order = self._order[1:] + [self._order[0]]
+            move_count = 1 if self._big_blind_index in self._order else 2
+            self._order = self._order[move_count:] + self._order[:move_count]
+            self._big_blind_index = self._order[-1]
             self._involved_order = self._order[:]
 
         def get_cards(self, deck):
@@ -572,8 +580,8 @@ class Game:
         if self._players.global_allin:
             self._state = self.ALL_IN
         if self._players.have_dif or not self._players.current_is_last and self._stage.depth_count == 0:
-            current_index = self._players.next_player()
-            if current_index == 0 and not self._players.after_fold:
+            current_index, changed = self._players.next_player()
+            if current_index == 0 and changed:
                 self._stage.depth_increase()
             self._players.get_current_dif()
             self._players.get_current_abilities()
