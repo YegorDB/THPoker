@@ -256,10 +256,6 @@ class Game:
                 return self.next_player()
             return self._current_index, changed
 
-        @property
-        def current_is_last(self):
-            return self._get_next_index() == 0
-
         def change_order(self):
             move_count = 1 if self._big_blind_index in self._order else 2
             self._order = self._order[move_count:] + self._order[:move_count]
@@ -325,6 +321,14 @@ class Game:
                 if not player.with_allin:
                     player.get_dif(self._max_round_bet)
                     if player.dif:
+                        return True
+            return False
+
+        @property
+        def have_not_actioned_one(self):
+            if self._get_next_index() != 0:
+                for i in range(self._current_index + 1, len(self._involved_order)):
+                    if not self[i].with_allin:
                         return True
             return False
 
@@ -579,7 +583,7 @@ class Game:
             return self._stage_end()
         if self._players.global_allin:
             self._state = self.ALL_IN
-        if self._players.have_dif or not self._players.current_is_last and self._stage.depth_count == 0:
+        if self._players.have_dif or self._stage.depth_count == 0 and self._players.have_not_actioned_one:
             current_index, changed = self._players.next_player()
             if current_index == 0 and changed:
                 self._stage.depth_increase()
@@ -612,7 +616,7 @@ class Game:
             "last_action": self._players.last_action,
         }
 
-        if self._point in (self.ACTION_NEEDED, self.ROUND_NEEDED):
+        if self._point in (self.ACTION_NEEDED, self.ROUND_NEEDED, self.THE_END):
             data.update({
                 "table": self._table.items[:],
                 "state": self._state,
