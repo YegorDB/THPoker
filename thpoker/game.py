@@ -165,13 +165,10 @@ class Player:
         self.unpaid_bets += bet
         self.stage_bets += bet
 
-    def refresh_last_action(self):
-        self.last_action = None
-
     def new_stage(self):
         self.stage_bets = 0
         self.dif = 0
-        self.refresh_last_action()
+        self.last_action = None
 
     def new_round(self):
         self.round_bets = 0
@@ -241,6 +238,10 @@ class Game:
         def current(self): # active player
             return self[self._current_index]
 
+        @property
+        def all_active(self):
+            return [self._scroll[i] for i in self._order]
+
         def _get_next_index(self):
             return 0 if self._current_index >= len(self._involved_order) - 1 else self._current_index + 1
 
@@ -256,9 +257,13 @@ class Game:
                 return self.next_player()
             return self._current_index, changed
 
-        def change_order(self):
+        def change_order(self, with_new_round_changes=True):
             move_count = 1 if self._big_blind_index in self._order else 2
             self._order = self._order[move_count:] + self._order[:move_count]
+            if with_new_round_changes:
+                self.new_round_order_changes()
+
+        def new_round_order_changes(self):
             self._big_blind_index = self._order[-1]
             self._involved_order = self._order[:]
 
@@ -452,10 +457,10 @@ class Game:
                     self._order.pop(self._order.index(self._scroll.index(player)))
 
         def new_stage(self):
-            for player in self:
+            for player in self.all_active:
                 player.new_stage()
             self._current_index = 0
-            self.last_action = None
+            # self.last_action = None
 
         def new_round(self):
             for player in self:
@@ -529,8 +534,10 @@ class Game:
     @PointCheck(ROUND_NEEDED)
     def new_round(self):
         self._players.remove_inactive()
-        if self._players.rolling_count != 2 or self._stage.name == self.Stage.PRE_FLOP:
+        if self._players.rolling_count != 2:
             self._players.change_order()
+        else:
+            self._players.new_round_order_changes()
         self._players.new_round()
         self._table.clean()
         self._deck.refresh()
@@ -543,7 +550,7 @@ class Game:
     def new_stage(self):
         self._stage.next()
         if self._players.rolling_count == 2 and self._stage.name == self.Stage.FLOP:
-            self._players.change_order()
+            self._players.change_order(with_new_round_changes=False)
         return self._new_stage()
 
     def _new_stage(self):
@@ -610,46 +617,40 @@ class Game:
         return Context(success=True, **self._get_context_data())
 
     def _get_context_data(self):
-        data = {
+        return {
             "description": self.POINT_DESCRIPTION[self._point],
             "point": self._point,
             "last_action": self._players.last_action,
-        }
-
-        if self._point in (self.ACTION_NEEDED, self.ROUND_NEEDED, self.THE_END):
-            data.update({
-                "table": self._table.items[:],
-                "state": self._state,
-                "stage": {"name": self._stage.name, "depth": self._stage.depth_count},
-                "bank": self._players.bank,
-                "result": self._result,
-                **(
-                    {"current_player": self._players.current.identifier}
-                    if self._point == self.ACTION_NEEDED else
-                    {}
-                ),
-                "players": {
-                    player.identifier: {
-                        "chips": player.chips,
-                        "stage_bets": player.stage_bets,
-                        "round_bets": player.round_bets,
-                        **(
-                            {"dif": player.dif, "abilities": player.abilities,}
-                            if self._point == self.ACTION_NEEDED and \
-                                player.identifier == self._players.current.identifier else
-                            {}
-                        ),
-                        "cards": player.hand.items[:],
-                        "hand_type": player.hand.type,
-                        "combo": player.combo,
-                        "last_action": (
-                            {"kind": player.last_action.kind, "bet": player.last_action.bet}
-                            if player.last_action else
-                            None
-                        ),
-                    }
-                    for player in self._players
+            "state": self._state,
+            "table": self._table.items[:],
+            "stage": {"name": self._stage.name, "depth": self._stage.depth_count},
+            "bank": self._players.bank,
+            "result": self._result,
+            **(
+                {"current_player": self._players.current.identifier}
+                if self._point == self.ACTION_NEEDED else
+                {}
+            ),
+            "players": {
+                player.identifier: {
+                    "chips": player.chips,
+                    "stage_bets": player.stage_bets,
+                    "round_bets": player.round_bets,
+                    **(
+                        {"dif": player.dif, "abilities": player.abilities,}
+                        if self._point == self.ACTION_NEEDED and \
+                            player.identifier == self._players.current.identifier else
+                        {}
+                    ),
+                    "cards": player.hand.items[:],
+                    "hand_type": player.hand.type,
+                    "combo": player.combo,
+                    "last_action": (
+                        {"kind": player.last_action.kind, "bet": player.last_action.bet}
+                        if player.last_action else
+                        None
+                    ),
                 }
-            })
-
-        return data
+                for player in self._players.all_active
+            }
+        }
