@@ -20,19 +20,6 @@ from thpoker.core import Deck, Table, Hand, Combo
 from thpoker.validators import PlayerActionValidator, game_players_validator, game_validator
 
 
-class Context:
-    """Class to state data exchange."""
-
-    def __init__(self, success, description="", **data):
-        self.success = success
-        self.description = description
-        self.add_data(**data)
-
-    def add_data(self, **data):
-        for attr, value in data.items():
-            setattr(self, attr, value)
-
-
 class Player:
     """
     Player activity class.
@@ -125,12 +112,12 @@ class Player:
 
     def action(self, kind, bet=0):
         if kind not in self.Action.OUTSIDE_AVAILABLE:
-            return Context(success=False, description="Wrong move kind.")
+            return {"success": False, "description": "Wrong move kind."}
         args = [bet] if kind in self.Action.WITH_BET else []
         if kind not in self.Action.ALLWAYS_ACCEPTED and not self.has_ability[kind](*args):
-            return Context(success=False, description="Illegal move.")
+            return {"success": False, "description": "Illegal move."}
         getattr(self, f"_{kind}")(*args)
-        return Context(success=True, description="Successfully moved.")
+        return {"success": True, "description": "Successfully moved."}
 
     def _with_bet_action(self, bet, action_kind):
         if self.chips > bet:
@@ -260,6 +247,7 @@ class Game:
         def change_order(self, with_new_round_changes=True):
             move_count = 1 if self._big_blind_index in self._order else 2
             self._order = self._order[move_count:] + self._order[:move_count]
+            self._involved_order = self._order[:]
             if with_new_round_changes:
                 self.new_round_order_changes()
 
@@ -274,7 +262,7 @@ class Game:
         def get_blindes(self, small_blind, big_blind):
             self._current_index = self.involved_count - 2
             context = self.action(Player.Action.BLIND_BET, small_blind)
-            if not context.success:
+            if not context["success"]:
                 return context
             self._current_index = self.involved_count - 1
             context = self.action(Player.Action.BLIND_BET, big_blind)
@@ -296,7 +284,7 @@ class Game:
         def action(self, kind, bet=0):
             old_stage_bets = self.current.stage_bets
             context = self.current.action(kind, bet)
-            if context.success:
+            if context["success"]:
                 self.bank += self.current.stage_bets - old_stage_bets
                 self.last_action = {
                     "identifier": self.current.identifier,
@@ -515,7 +503,7 @@ class Game:
             @wraps(method)
             def wrap(instanse, *args, **kwargs):
                 if instanse._point != self._nedded_point:
-                    return Context(success=False, **instanse._get_context_data())
+                    return {"success": False, **instanse._get_context_data()}
                 return method(instanse, *args, **kwargs)
             return wrap
 
@@ -534,7 +522,7 @@ class Game:
     @PointCheck(ROUND_NEEDED)
     def new_round(self):
         self._players.remove_inactive()
-        if self._players.rolling_count != 2:
+        if self._players.rolling_count != 2 or self._stage.name == self.Stage.PRE_FLOP:
             self._players.change_order()
         else:
             self._players.new_round_order_changes()
@@ -556,13 +544,13 @@ class Game:
     def _new_stage(self):
         self._players.new_stage()
         context = self._distribution()
-        if not context.success:
+        if not context["success"]:
             return context
         if self._state != self.ALL_IN:
             self._players.get_current_dif()
             self._players.get_current_abilities()
             self._point = self.ACTION_NEEDED
-            return Context(success=True, **self._get_context_data())
+            return {"success": True, **self._get_context_data()}
         elif self._stage.name == self.Stage.RIVER:
             return self._show_down()
         return self._stage_end()
@@ -570,19 +558,19 @@ class Game:
     def _distribution(self):
         if self._stage.name == self.Stage.PRE_FLOP:
             context = self._players.get_blindes(*self._blindes)
-            if context.success:
+            if context["success"]:
                 self._players.get_cards(self._deck)
                 if self._players.global_allin:
                     self._state = self.ALL_IN
         else:
             self._table.pull(self._deck, self._stage.table_size - self._table.size)
-            context = Context(success=True)
+            context = {"success": True}
         return context
 
     @PointCheck(ACTION_NEEDED)
     def action(self, kind, bet=0):
         action_result = self._players.action(kind, bet)
-        if not action_result.success:
+        if not action_result["success"]:
             return action_result
         if self._players.after_fold and self._players.involved_count == 1:
             self._result = self._players.get_folded_result()
@@ -597,7 +585,7 @@ class Game:
             self._players.get_current_dif()
             self._players.get_current_abilities()
             self._point = self.ACTION_NEEDED
-            return Context(success=True, **self._get_context_data())
+            return {"success": True, **self._get_context_data()}
         elif self._stage.name == self.Stage.RIVER:
             return self._show_down()
         return self._stage_end()
@@ -614,7 +602,7 @@ class Game:
             self._point = self.ROUND_NEEDED
         else:
             self._point = self.STAGE_NEEDED
-        return Context(success=True, **self._get_context_data())
+        return {"success": True, **self._get_context_data()}
 
     def _get_context_data(self):
         return {
