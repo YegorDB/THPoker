@@ -534,5 +534,101 @@ print(ratio3)
 # mean that it is nominal combo
 ```
 
+### Game
+
+*Game is project module that allows create Texas Hold'em Poker game and handle its logic*
+
+#### Player.Action(kind, bet=0)
+
+Player's action.
+
+There are six kinds of action: `Action.FOLD`, `Action.CALL`, `Action.CHECK`, `Action.RAISE`, `Action.BLIND_BET`, `Action.ALL_IN`.
+
+Takes two argumens: action kind and bet value (second one is used only in raise or blind bet kind of situation).
+
+```python
+from thpoker.game.Player import Action
+
+raise_action = Action(Action.RAISE, 20)
+print(raise_action.kind)
+# 'raise'
+print(raise_action.bet)
+# 20
+
+call_action = Action(Action.CALL)
+print(call_action.kind)
+# 'call'
+```
+
+#### Player(identifier)
+
+Player activity.
+
+Takes one argument: identifier wich can help distinguish one player from other. Identifier need to provide __hash__ method.
+
+```python
+from thpoker.game import Player
+
+# set player with number identifier
+player = Player(12345)
+print(player.identifier)
+# 12345
+
+# set player with string identifier
+player = Player('asdfg')
+print(player.identifier)
+# 'asdfg'
+```
+
+#### Game.Stage
+
+Game stage.
+
+There are four game stages: `Stage.PRE_FLOP`, `Stage.FLOP`, `Stage.TURN`, `Stage.RIVER`.
+
+#### Game(settings, +players)
+
+Texas Hold'em poker game logic handler.
+
+Takes settings argument and Player instanses (from two to ten). Settings includes "chips" (player start chips count) and "blindes" parameters.
+
+#### Game usage example
+
+```python
+from thpoker.game import Game, Player
+
+game = Game(
+    {"chips": 1000, "blindes": [10, 20]},
+    Player("first"),
+    Player("second"),
+    Player("third"),
+)
+context = game.new_round()
+print(context["success"])
+# True
+print(context["point"] == Game.ACTION_NEEDED)
+# True
+print(context["table"])
+# []
+print(context["state"] == Game.NORMAL)
+# True
+print(context["stage"]["name"] == Game.Stage.PRE_FLOP)
+# True
+print(context["stage"]["depth"] == 0)
+# True
+print(context["bank"])
+# 30
+print(context["result"])
+# None
+print(context["last_action"]["identifier"])
+# 'first'
+print(context["last_action"]["kind"] == Player.Action.BLIND_BET)
+# True
+print(context["last_action"]["bet"])
+# 20
+print(context["last_action"]["current_player"])
+# 'second'
+```
+
 ## License
 [Apache License](https://choosealicense.com/licenses/apache-2.0/)
