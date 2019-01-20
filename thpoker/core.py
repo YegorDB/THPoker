@@ -111,7 +111,8 @@ class Card:
             'c': '\u2663',
             'd': '\u2666',
             'h': '\u2665',
-            's': '\u2660'}
+            's': '\u2660'
+        }
 
         @CardSymbolValidator(symbols, CardSuitSymbolError)
         def __init__(self, symbol):
@@ -123,7 +124,7 @@ class Card:
             return self.pretty_symbol
 
         def __repr__(self):
-            return self.symbol
+            return self.pretty_symbol
 
         def __eq__(self, other):
             return self.symbol == other.symbol
