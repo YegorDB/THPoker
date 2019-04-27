@@ -178,7 +178,7 @@ There are 13 weights (Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack
 52
 ```
 
-#### Cards(cards_string=None, max_count=7)
+#### Cards(cards_string=None, cards=None, max_count=7)
 
 Several cards.
 
@@ -225,6 +225,16 @@ Also cards could be set by cards string
 >>> cards = Cards("2c/3c/4c/5c/6c")
 >>> cards
 [2♣, 3♣, 4♣, 5♣, 6♣]
+```
+
+Also cards could be set by iterable of Card instanses
+
+```python
+>>> from thpoker.core import Card, Cards
+
+>>> cards = Cards(cards=[Card("Jd"), Card("2s"), Card("6c")])
+>>> cards
+[2♠, 6♣, J♦]
 ```
 
 There is a possibility to find out whether the cards contain a card or not
