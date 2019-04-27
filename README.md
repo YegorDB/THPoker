@@ -637,22 +637,22 @@ Cards combination set by table and hand. Also shows combination ratio that mean 
 
 Player's action.
 
-There are six kinds of action: `Action.FOLD`, `Action.CALL`, `Action.CHECK`, `Action.RAISE`, `Action.BLIND_BET`, `Action.ALL_IN`.
+There are six kinds of action: `Player.Action.FOLD`, `Player.Action.CALL`, `Player.Action.CHECK`, `Player.Action.RAISE`, `Player.Action.BLIND_BET`, `Player.Action.ALL_IN`.
 
 Takes two argumens: action kind and bet value (second one is used only in raise or blind bet kind of situation).
 
 ```python
-from thpoker.game.Player import Action
+>>> from thpoker.game import Player
 
-raise_action = Action(Action.RAISE, 20)
-print(raise_action.kind)
-# 'raise'
-print(raise_action.bet)
-# 20
+>>> raise_action = Player.Action(Player.Action.RAISE, 20)
+>>> raise_action.kind
+'raise'
+>>> raise_action.bet
+20
 
-call_action = Action(Action.CALL)
-print(call_action.kind)
-# 'call'
+>>> call_action = Player.Action(Player.Action.CALL)
+>>> call_action.kind
+'call'
 ```
 
 #### Player(identifier)
@@ -662,67 +662,628 @@ Player activity.
 Takes one argument: identifier wich can help distinguish one player from other. Identifier need to provide __hash__ method.
 
 ```python
-from thpoker.game import Player
+>>> from thpoker.game import Player
 
-# set player with number identifier
-player = Player(12345)
-print(player.identifier)
-# 12345
+>>> player = Player(12345) # set player with number identifier
+>>> player.identifier
+12345
 
-# set player with string identifier
-player = Player('asdfg')
-print(player.identifier)
-# 'asdfg'
+>>> player = Player('asdfg') # set player with string identifier
+>>> player.identifier
+'asdfg'
 ```
 
 #### Game.Stage
 
-Game stage.
+There are four game stages: `Game.Stage.PRE_FLOP`, `Game.Stage.FLOP`, `Game.Stage.TURN`, `Game.Stage.RIVER`.
 
-There are four game stages: `Stage.PRE_FLOP`, `Stage.FLOP`, `Stage.TURN`, `Stage.RIVER`.
+#### Game states
 
-#### Game(settings, +players)
+There are five game states: `Game.NORMAL`, `Game.FOLD`, `Game.ALL_IN`, `Game.SHOW_DOWN`, `Game.THE_END`.
+
+#### Game points
+
+There are three game points: `Game.ACTION_NEEDED`, `Game.STAGE_NEEDED`, `Game.ROUND_NEEDED`.
+
+#### Game(settings, \*players)
 
 Texas Hold'em poker game logic handler.
 
 Takes settings argument and Player instanses (from two to ten). Settings includes "chips" (player start chips count) and "blindes" parameters.
 
-#### Game usage example
-
 ```python
-from thpoker.game import Game, Player
+>>> from thpoker.game import Game, Player
 
-game = Game(
-    {"chips": 1000, "blindes": [10, 20]},
-    Player("first"),
-    Player("second"),
-    Player("third"),
-)
-context = game.new_round()
-print(context["success"])
-# True
-print(context["point"] == Game.ACTION_NEEDED)
-# True
-print(context["table"])
-# []
-print(context["state"] == Game.NORMAL)
-# True
-print(context["stage"]["name"] == Game.Stage.PRE_FLOP)
-# True
-print(context["stage"]["depth"] == 0)
-# True
-print(context["bank"])
-# 30
-print(context["result"])
-# None
-print(context["last_action"]["identifier"])
-# 'first'
-print(context["last_action"]["kind"] == Player.Action.BLIND_BET)
-# True
-print(context["last_action"]["bet"])
-# 20
-print(context["last_action"]["current_player"])
-# 'second'
+>>> game = Game(
+...     {"chips": 1000, "blindes": [10, 20]},
+...     Player("qwerty"),
+...     Player("asdfgh"),
+...     Player("zxcvbn"),
+... )
+
+>>> context = game.new_round()
+>>> context
+{
+    'success': True,
+    'description': 'Redy to accept action.',
+    'point': 'action_needed',
+    'last_action': {
+        'identifier': 'qwerty',
+        'kind': 'blind_bet',
+        'bet': 20
+    },
+    'state': 'normal',
+    'table': [],
+    'stage': {
+        'name': 'pre_flop',
+        'depth': 0
+    },
+    'bank': 30,
+    'result': None,
+    'current_player': 'asdfgh',
+    'players': {
+        'asdfgh': {
+            'chips': 1000,
+            'stage_bets': 0,
+            'round_bets': 0,
+            'dif': 20,
+            'abilities': {
+                'raise': {
+                    'min': 21,
+                    'max': 1000
+                },
+                'call': 20,
+                'check': False
+            },
+            'cards': [2♥, 2♠],
+            'hand_type': '22',
+            'combo': None,
+            'last_action': None
+        },
+        'zxcvbn': {
+            'chips': 990,
+            'stage_bets': 10,
+            'round_bets': 10,
+            'cards': [8♣, 5♦],
+            'hand_type': '85o',
+            'combo': None,
+            'last_action': {
+                'kind': 'blind_bet',
+                'bet': 10
+            }
+        },
+        'qwerty': {
+            'chips': 980,
+            'stage_bets': 20,
+            'round_bets': 20,
+            'cards': [7♥, 5♥],
+            'hand_type': '75s',
+            'combo': None,
+            'last_action': {
+                'kind': 'blind_bet',
+                'bet': 20
+            }
+        }
+    }
+}
+>>> context["point"] == Game.ACTION_NEEDED
+True
+>>> context["state"] == Game.NORMAL
+True
+>>> context["stage"]["name"] == Game.Stage.PRE_FLOP
+True
+>>> context["last_action"]["kind"] == Player.Action.BLIND_BET
+True
+
+>>> game.action(Player.Action.RAISE, 60)
+{
+    'success': True,
+    'description': 'Redy to accept action.',
+    'point': 'action_needed',
+    'last_action': {
+        'identifier': 'asdfgh',
+        'kind': 'raise',
+        'bet': 60
+    },
+    'state': 'normal',
+    'table': [],
+    'stage': {
+        'name': 'pre_flop',
+        'depth': 0
+    },
+    'bank': 90,
+    'result': None,
+    'current_player': 'zxcvbn',
+    'players': {
+        'asdfgh': {
+            'chips': 940,
+            'stage_bets': 60,
+            'round_bets': 60,
+            'cards': [2♥, 2♠],
+            'hand_type': '22',
+            'combo': None,
+            'last_action': {
+                'kind': 'raise',
+                'bet': 60
+            }
+        },
+        'zxcvbn': {
+            'chips': 990,
+            'stage_bets': 10,
+            'round_bets': 10,
+            'dif': 50,
+            'abilities': {
+                'raise': {
+                    'min': 51,
+                    'max': 990
+                },
+                'call': 50,
+                'check': False
+            },
+            'cards': [8♣, 5♦],
+            'hand_type': '85o',
+            'combo': None,
+            'last_action': {
+                'kind': 'blind_bet',
+                'bet': 10
+            }
+        },
+        'qwerty': {
+            'chips': 980,
+            'stage_bets': 20,
+            'round_bets': 20,
+            'cards': [7♥, 5♥],
+            'hand_type': '75s',
+            'combo': None,
+            'last_action': {
+                'kind': 'blind_bet',
+                'bet': 20
+            }
+        }
+    }
+}
+
+>>> game.action(Player.Action.FOLD)
+{
+    'success': True,
+    'description': 'Redy to accept action.',
+    'point': 'action_needed',
+    'last_action': {
+        'identifier': 'zxcvbn',
+        'kind': 'fold',
+        'bet': 0
+    },
+    'state': 'normal',
+    'table': [],
+    'stage': {
+        'name': 'pre_flop',
+        'depth': 0
+    },
+    'bank': 90,
+    'result': None,
+    'current_player': 'qwerty',
+    'players': {
+        'asdfgh': {
+            'chips': 940,
+            'stage_bets': 60,
+            'round_bets': 60,
+            'cards': [2♥, 2♠],
+            'hand_type': '22',
+            'combo': None,
+            'last_action': {
+                'kind': 'raise',
+                'bet': 60
+            }
+        },
+        'zxcvbn': {
+            'chips': 990,
+            'stage_bets': 10,
+            'round_bets': 10,
+            'cards': [8♣, 5♦],
+            'hand_type': '85o',
+            'combo': None,
+            'last_action': {
+                'kind': 'fold',
+                'bet': 0
+            }
+        },
+        'qwerty': {
+            'chips': 980,
+            'stage_bets': 20,
+            'round_bets': 20,
+            'dif': 40,
+            'abilities': {
+                'raise': {
+                    'min': 41,
+                    'max': 980
+                },
+                'call': 40,
+                'check': False
+            },
+            'cards': [7♥, 5♥],
+            'hand_type': '75s',
+            'combo': None,
+            'last_action': {
+                'kind': 'blind_bet',
+                'bet': 20
+            }
+        }
+    }
+}
+
+>>> game.action(Player.Action.CALL)
+{
+    'success': True,
+    'description': 'Redy to start new stage.',
+    'point': 'stage_needed',
+    'last_action': {
+        'identifier': 'qwerty',
+        'kind': 'call',
+        'bet': 40
+    },
+    'state': 'normal',
+    'table': [],
+    'stage': {
+        'name': 'pre_flop',
+        'depth': 0
+    },
+    'bank': 130,
+    'result': None,
+    'players': {
+        'asdfgh': {
+            'chips': 940,
+            'stage_bets': 60,
+            'round_bets': 60,
+            'cards': [2♥, 2♠],
+            'hand_type': '22',
+            'combo': None,
+            'last_action': {
+                'kind': 'raise',
+                'bet': 60
+            }
+        },
+        'zxcvbn': {
+            'chips': 990,
+            'stage_bets': 10,
+            'round_bets': 10,
+            'cards': [8♣, 5♦],
+            'hand_type': '85o',
+            'combo': None,
+            'last_action': {
+                'kind': 'fold',
+                'bet': 0
+            }
+        },
+        'qwerty': {
+            'chips': 940,
+            'stage_bets': 60,
+            'round_bets': 60,
+            'cards': [7♥, 5♥],
+            'hand_type': '75s',
+            'combo': None,
+            'last_action': {
+                'kind': 'call',
+                'bet': 40
+            }
+        }
+    }
+}
+
+>>> game.new_stage()
+{
+    'success': True,
+    'description': 'Redy to accept action.',
+    'point': 'action_needed',
+    'last_action': {
+        'identifier': 'qwerty',
+        'kind': 'call',
+        'bet': 40
+    },
+    'state': 'normal',
+    'table': [T♠, 8♠, J♦],
+    'stage': {
+        'name': 'flop',
+        'depth': 0
+    },
+    'bank': 130,
+    'result': None,
+    'current_player': 'asdfgh',
+    'players': {
+        'asdfgh': {
+            'chips': 940,
+            'stage_bets': 0,
+            'round_bets': 60,
+            'dif': 0,
+            'abilities': {
+                'raise': {
+                    'min': 1,
+                    'max': 940
+                },
+                'call': 0,
+                'check': True
+            },
+            'cards': [2♥, 2♠],
+            'hand_type': '22',
+            'combo': None,
+            'last_action': None
+        },
+        'zxcvbn': {
+            'chips': 990,
+            'stage_bets': 0,
+            'round_bets': 10,
+            'cards': [8♣, 5♦],
+            'hand_type': '85o',
+            'combo': None,
+            'last_action': None
+        },
+        'qwerty': {
+            'chips': 940,
+            'stage_bets': 0,
+            'round_bets': 60,
+            'cards': [7♥, 5♥],
+            'hand_type': '75s',
+            'combo': None,
+            'last_action': None
+        }
+    }
+}
+
+>>> game.action(Player.Action.CHECK)
+{
+    'success': True,
+    'description': 'Redy to accept action.',
+    'point': 'action_needed',
+    'last_action': {
+        'identifier': 'asdfgh',
+        'kind': 'check',
+        'bet': 0
+    },
+    'state': 'normal',
+    'table': [T♠, 8♠, J♦],
+    'stage': {
+        'name': 'flop',
+        'depth': 0
+    },
+    'bank': 130,
+    'result': None,
+    'current_player': 'qwerty',
+    'players': {
+        'asdfgh': {
+            'chips': 940,
+            'stage_bets': 0,
+            'round_bets': 60,
+            'cards': [2♥, 2♠],
+            'hand_type': '22',
+            'combo': None,
+            'last_action': {
+                'kind': 'check',
+                'bet': 0
+            }
+        },
+        'zxcvbn': {
+            'chips': 990,
+            'stage_bets': 0,
+            'round_bets': 10,
+            'cards': [8♣, 5♦],
+            'hand_type': '85o',
+            'combo': None,
+            'last_action': None
+        },
+        'qwerty': {
+            'chips': 940,
+            'stage_bets': 0,
+            'round_bets': 60,
+            'dif': 0,
+            'abilities': {
+                'raise': {
+                    'min': 1,
+                    'max': 940
+                },
+                'call': 0,
+                'check': True
+            },
+            'cards': [7♥, 5♥],
+            'hand_type': '75s',
+            'combo': None,
+            'last_action': None
+        }
+    }
+}
+
+>>> game.action(Player.Action.RAISE, 100)
+{
+    'success': True,
+    'description': 'Redy to accept action.',
+    'point': 'action_needed',
+    'last_action': {
+        'identifier': 'qwerty',
+        'kind': 'raise',
+        'bet': 100
+    },
+    'state': 'normal',
+    'table': [T♠, 8♠, J♦],
+    'stage': {
+        'name': 'flop',
+        'depth': 1
+    },
+    'bank': 230,
+    'result': None,
+    'current_player': 'asdfgh',
+    'players': {
+        'asdfgh': {
+            'chips': 940,
+            'stage_bets': 0,
+            'round_bets': 60,
+            'dif': 100,
+            'abilities': {
+                'raise': {
+                    'min': 101,
+                    'max': 940
+                },
+                'call': 100,
+                'check': False
+            },
+            'cards': [2♥, 2♠],
+            'hand_type': '22',
+            'combo': None,
+            'last_action': {
+                'kind': 'check',
+                'bet': 0
+            }
+        },
+        'zxcvbn': {
+            'chips': 990,
+            'stage_bets': 0,
+            'round_bets': 10,
+            'cards': [8♣, 5♦],
+            'hand_type': '85o',
+            'combo': None,
+            'last_action': None
+        },
+        'qwerty': {
+            'chips': 840,
+            'stage_bets': 100,
+            'round_bets': 160,
+            'cards': [7♥, 5♥],
+            'hand_type': '75s',
+            'combo': None,
+            'last_action': {
+                'kind': 'raise',
+                'bet': 100
+            }
+        }
+    }
+}
+
+>>> game.action(Player.Action.FOLD)
+{
+    'success': True,
+    'description': 'Redy to start new round.',
+    'point': 'round_needed',
+    'last_action': {
+        'identifier': 'asdfgh',
+        'kind': 'fold',
+        'bet': 0
+    },
+    'state': 'fold',
+    'table': [T♠, 8♠, J♦],
+    'stage': {
+        'name': 'flop',
+        'depth': 1
+    },
+    'bank': 230,
+    'result': {
+        'winners': {
+            'qwerty': 230
+        },
+        'loosers': {
+            'zxcvbn': 10,
+            'asdfgh': 60
+        }
+    },
+    'players': {
+        'asdfgh': {
+            'chips': 940,
+            'stage_bets': 0,
+            'round_bets': 60,
+            'cards': [2♥, 2♠],
+            'hand_type': '22',
+            'combo': None,
+            'last_action': {
+                'kind': 'fold',
+                'bet': 0
+            }
+        },
+        'zxcvbn': {
+            'chips': 990,
+            'stage_bets': 0,
+            'round_bets': 10,
+            'cards': [8♣, 5♦],
+            'hand_type': '85o',
+            'combo': None,
+            'last_action': None
+        },
+        'qwerty': {
+            'chips': 1070,
+            'stage_bets': 100,
+            'round_bets': 160,
+            'cards': [7♥, 5♥],
+            'hand_type': '75s',
+            'combo': None,
+            'last_action': {
+                'kind': 'raise',
+                'bet': 100
+            }
+        }
+    }
+}
+
+>>> game.new_round()
+{
+    'success': True,
+    'description': 'Redy to accept action.',
+    'point': 'action_needed',
+    'last_action': {
+        'identifier': 'asdfgh',
+        'kind': 'blind_bet',
+        'bet': 20
+    },
+    'state': 'normal',
+    'table': [],
+    'stage': {
+        'name': 'pre_flop',
+        'depth': 0
+    },
+    'bank': 30,
+    'result': None,
+    'current_player': 'zxcvbn',
+    'players': {
+        'zxcvbn': {
+            'chips': 990,
+            'stage_bets': 0,
+            'round_bets': 0,
+            'dif': 20,
+            'abilities': {
+                'raise': {
+                    'min': 21,
+                    'max': 990
+                },
+                'call': 20,
+                'check': False
+            },
+            'cards': [3♠, 3♥],
+            'hand_type': '33',
+            'combo': None,
+            'last_action': None
+        },
+        'qwerty': {
+            'chips': 1060,
+            'stage_bets': 10,
+            'round_bets': 10,
+            'cards': [J♣, 7♠],
+            'hand_type': 'J7o',
+            'combo': None,
+            'last_action': {
+                'kind': 'blind_bet',
+                'bet': 10
+            }
+        },
+        'asdfgh': {
+            'chips': 920,
+            'stage_bets': 20,
+            'round_bets': 20,
+            'cards': [K♣, 6♣],
+            'hand_type': 'K6s',
+            'combo': None,
+            'last_action': {
+                'kind': 'blind_bet',
+                'bet': 20
+            }
+        }
+    }
+}
+
+>>> #and so forth
 ```
 
 ## License

@@ -131,4 +131,5 @@ def get_result(h1, h2):
     return (points[2] + points[1] / 2) / sum(points)
 
 
-print(get_result("AA", "89s"))
+if __name__ == "__main__":
+    print('get_result("AA", "89s")', get_result("AA", "89s"))
