@@ -1,4 +1,4 @@
-# Copyright 2018 Yegor Bitensky
+# Copyright 2018-2019 Yegor Bitensky
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -321,7 +321,20 @@ class Combo:
         FLUSH: "flush",
         FULL_HOUSE: "full house",
         FOUR_OF_A_KIND: "four of a kind",
-        STRAIGHT_FLUSH: "straight flush"}
+        STRAIGHT_FLUSH: "straight flush"
+    }
+
+    SHORT_TYPE_NAMES = {
+        HIGH_CARD: "hc",
+        ONE_PAIR: "op",
+        TWO_PAIRS: "tp",
+        THREE_OF_A_KIND: "tk",
+        STRAIGHT: "st",
+        FLUSH: "fl",
+        FULL_HOUSE: "fh",
+        FOUR_OF_A_KIND: "fk",
+        STRAIGHT_FLUSH: "sf"
+    }
 
     class Sequence:
         """Cards sequence."""
@@ -539,6 +552,10 @@ class Combo:
     @property
     def name(self):
         return self.TYPE_NAMES[self.type]
+
+    @property
+    def short_name(self):
+        return self.SHORT_TYPE_NAMES[self.type]
 
     def __str__(self):
         return  f"{self.name} ({str(self.cards)[1:-1]})"
