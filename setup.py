@@ -1,4 +1,4 @@
-# Copyright 2018 Yegor Bitensky
+# Copyright 2018-2019 Yegor Bitensky
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,16 @@
 from setuptools import setup, find_packages
 
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+
 setup(
     name='THPoker',
-    version='1.0.1',
+    version='1.1.0',
     description="Texas Hold'em Poker tool",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     url='https://github.com/YegorDB/THPoker',
     author='Yegor Bitensky',
     classifiers=[
@@ -28,9 +34,14 @@ setup(
         "Intended Audience :: Education",
         "Topic :: Games/Entertainment",
         "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3 :: Only",
     ],
-    keywords='poker gambling cards',
-    packages=find_packages(exclude=['tests*']),
+    keywords='poker cards',
+    packages=find_packages(exclude=['tests*', 'examples*']),
     python_requires='>=3.6',
+    install_requires=['CTHPoker', 'AGStuff'],
 )
