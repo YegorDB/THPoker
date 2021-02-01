@@ -25,6 +25,20 @@ full house (T♦, T♥, T♠, A♠, A♥)
 True
 ```
 
+### Hardcore
+```python
+>>> from thpoker.hardcore import hcombo
+
+>>> combo1 = hcombo("Kh/Ah/8h/9h/Th/Jh/Qh")
+>>> print(combo1)
+[9, 14]
+>>> combo2 = hcombo("Td/As/3h/Th/Ah/Ts/9c")
+>>> print(combo2)
+[7, 10, 14]
+>>> combo1 > combo2
+True
+```
+
 
 ## Documentation
 [Explore](https://github.com/YegorDB/THPoker/docs)
