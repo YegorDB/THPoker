@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Yegor Bitensky
+# Copyright 2018-2021 Yegor Bitensky
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -263,29 +263,22 @@ class Combo:
             self.items = []
 
         def __str__(self):
-            return str(self.items)
+            return f"({', '.join(self.items)})"
 
         def __repr__(self):
             return str(self.items)
 
-        def compare(self, other, condition, even):  # compare template
-            for card1, card2 in zip(self.items, other.items):
-                if card1 != card2:
-                    return eval('card1 ' + condition + ' card2', {'card1': card1, 'card2': card2})
-            else:
-                return even
-
         def __lt__(self, other):
-            return self.compare(other, '<', False)
+            return self._compare(other, '__lt__', False)
 
         def __gt__(self, other):
-            return self.compare(other, '>', False)
+            return self._compare(other, '__gt__', False)
 
         def __eq__(self, other):
-            return self.compare(other, '==', True)
+            return self._compare(other, '__eq__', True)
 
         def __ne__(self, other):
-            return self.compare(other, '!=', False)
+            return self._compare(other, '__ne__', False)
 
         def __getitem__(self, key):
             return self.items[key]
@@ -293,21 +286,28 @@ class Combo:
         def __contains__(self, item):
             return item in self.items
 
-        def len(self):
+        def __len__(self):
             return len(self.items)
+
+        def _compare(self, other, method, even):
+            for card1, card2 in zip(self.items, other.items):
+                if card1 != card2:
+                    return getattr(card1, method)(card2)
+            else:
+                return even
 
         def add_card(self, card):
             self.items.append(card)
 
         def add_cards(self, cards):
-            self.items += cards
+            self.items.extend(cards)
 
         def get_other_cards(self, all_cards):  # add cards to main combination
             cards_to_add = list(filter(lambda card: card not in self, all_cards))
-            if cards_to_add:
-                cards_to_add.reverse()
-                free_places = 5 - self.len()
-                self.add_cards(cards_to_add[:free_places])
+            if not cards_to_add: return
+            cards_to_add.reverse()
+            free_places = 5 - len(self)
+            self.add_cards(cards_to_add[:free_places])
 
 
     class Ratio:
@@ -453,7 +453,7 @@ class Combo:
         return self.ratio.is_miss
 
     def __str__(self):
-        return  f"{self.name} ({str(self.cards)[1:-1]})"
+        return  f"{self.name} {self.cards}"
 
     def __repr__(self):
         return str([self.type] + self.cards.items)
