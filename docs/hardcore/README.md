@@ -164,7 +164,7 @@ False
 
 ## rhcombo(cards)
 
-Cards combination created by table and hand. Also shows combination ratio (whether combo base cards inludes hand cards).
+Cards combination created by table and hand. Also shows combination ratio (whether combo base cards inlude hand cards).
 
 ```python
 >>> from thpoker.hardcore import hcards, rhcombo

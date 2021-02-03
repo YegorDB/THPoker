@@ -75,7 +75,7 @@ class Combo:
 
     One of high card, one pair, two pairs, three of a kind, straight, flush, full house, four of a kind, straight flush.
 
-    Takes arguments (cards_string, cards, table, hand, nominal_check)
+    Takes arguments (cards_string, cards, table, hand, ratio_check)
     For example:
         Combo(cards_string='6s/Jc/Ah/9h/3d/Jd') or Combo('6s/Jc/Ah/9h/3d/Jd')
     or
@@ -83,12 +83,8 @@ class Combo:
     or
         Combo(table=Table('6s/Jc/Ah/9h'), hand=Hand('3d/Jd'))
     or
-        Combo(table=Table('6s/Jc/Ah/9h'), hand=Hand('3d/Jd'), nominal_check=True)
+        Combo(table=Table('6s/Jc/Ah/9h'), hand=Hand('3d/Jd'), ratio_check=True)
     '''
-
-    is_real = False          # hand is complete involved in combination
-    is_nominal = False       # hand is not involved in combination
-    is_half_nominal = False  # hand is involved in a part of combination
 
     HIGH_CARD = 1
     ONE_PAIR = 2
@@ -307,9 +303,97 @@ class Combo:
                 free_places = 5 - self.len()
                 self.add_cards(cards_to_add[:free_places])
 
-    def __init__(self, cards_string=None, cards=None, table=None, hand=None, nominal_check=False):
-        self.cards = self.Cards()
-        nominal_check_needed = False
+    class Ratio:
+        """
+        Combination ratio.
+        Shows whether combination base cards inlude hand cards or not.
+        """
+
+        REAL = "real" # combo base cards inlude hand cards
+        HALF = "half" # half combo base cards inlude hand cards
+        MISS = "miss" # combo base cards don't inlude hand cards
+
+        def __init__(self, combo):
+            self._combo = combo
+            self._value = None
+
+        @property
+        def is_real(self):
+            return self._value == self.REAL
+
+        @property
+        def is_half(self):
+            return self._value == self.HALF
+
+        @property
+        def is_miss(self):
+            return self._value == self.MISS
+
+        @property
+        def is_checked(self):
+            return not self._value is None
+
+        def check(self):
+            suffix = Combo.SHORT_TYPE_NAMES[self._combo.type]
+            getattr(self, f'_check_{suffix}')()
+
+        def _check_hc(self):
+            self._check_all_cards()
+
+        def _check_op(self):
+            self._find(self._combo.cards[:2])
+
+        def _check_tp(self):
+            pair1 = self._combo.cards[:2]
+            pair2 = self._combo.cards[2:4]
+            self._find_with_half((pair1, pair2))
+
+        def _check_tk(self):
+            self._find(self._combo.cards[:3])
+
+        def _check_st(self):
+            self._check_all_cards()
+
+        def _check_fl(self):
+            self._check_all_cards()
+
+        def _check_fh(self):
+            three = list(filter(lambda c: c == self._combo.repeats.weight.three, self._combo.init_cards))
+            two = list(filter(lambda c: c == self._combo.repeats.weight.two, self._combo.init_cards))
+            self._find_with_half((three, two))
+
+        def _check_fk(self):
+            self._find(self._combo.cards[:4])
+
+        def _check_sf(self):
+            self._check_all_cards()
+
+        def _check_all_cards(self):
+            self._find(self._combo.cards[:])
+
+        def _find(self, cards):
+            for card in cards:
+                if card.in_hand:
+                    self._value = self.REAL
+                    break
+            else:
+                self._value = self.MISS
+
+        def _find_with_half(self, cards_set):
+            combo_cards_in_hand = 0
+            for cards in cards_set:
+                for card in cards:
+                    if card.in_hand:
+                        combo_cards_in_hand += 1
+                        break
+            self._value = {
+                2: self.REAL,
+                1: self.HALF,
+                0: self.MISS,
+            }[combo_cards_in_hand]
+
+    def __init__(self, cards_string=None, cards=None, table=None, hand=None, ratio_check=False):
+        ratio_check_needed = False
         if cards_string:
             self.init_cards = Cards(cards_string).items
         elif cards:
@@ -325,17 +409,20 @@ class Combo:
             if not hand_type is Hand:
                 raise ComboCardsTypeError(hand_type, Hand, 'hand')
             self.init_cards = table.items + hand.items
-            if nominal_check:
-                nominal_check_needed = True
+            if ratio_check:
+                ratio_check_needed = True
         else:
             raise ComboArgumentsError()
 
+        self.cards = self.Cards()
         self.repeats = None
         self.sequence = None
         self.type = None
+        self.ratio = self.Ratio(self)
+
         self.find_combo()
-        if nominal_check_needed:
-            self.check_nominal_combo()
+        if ratio_check_needed:
+            self.ratio.check()
 
     @property
     def name(self):
@@ -344,6 +431,18 @@ class Combo:
     @property
     def short_name(self):
         return self.SHORT_TYPE_NAMES[self.type]
+
+    @property
+    def is_real(self):
+        return self.ratio.is_real
+
+    @property
+    def is_half_nominal(self):
+        return self.ratio.is_half
+
+    @property
+    def is_nominal(self):
+        return self.ratio.is_miss
 
     def __str__(self):
         return  f"{self.name} ({str(self.cards)[1:-1]})"
@@ -439,42 +538,3 @@ class Combo:
         top_five_cards = self.init_cards[-5:]
         top_five_cards.reverse()
         self.cards.add_cards(top_five_cards)
-
-    def check_nominal_combo(self):
-        if self.type == self.FULL_HOUSE:
-            three = list(filter(lambda card: card == self.repeats.weight.three, self.init_cards))
-            two = list(filter(lambda card: card == self.repeats.weight.two, self.init_cards))
-            self.half_nominal_finder(card_set=(three, two))
-        elif self.type == self.TWO_PAIRS:
-            pair1 = self.cards[:2]
-            pair2 = self.cards[2:4]
-            self.half_nominal_finder(card_set=(pair1, pair2))
-        else:
-            if self.type == self.FOUR_OF_A_KIND:
-                cards = self.cards[:4]
-            elif self.type == self.THREE_OF_A_KIND:
-                cards = self.cards[:3]
-            elif self.type == self.ONE_PAIR:
-                cards = self.cards[:2]
-            else:
-                cards = self.cards[:]
-            for card in cards:
-                if card.in_hand:
-                    self.is_real = True
-                    break
-            else:
-                self.is_nominal = True
-
-    def half_nominal_finder(self, card_set):
-        combo_cards_in_hand = 0
-        for cards in card_set:
-            for card in cards:
-                if card.in_hand:
-                    combo_cards_in_hand += 1
-                    break
-        if combo_cards_in_hand == 2:
-            self.is_real = True
-        elif combo_cards_in_hand == 1:
-            self.is_half_nominal = True
-        else:
-            self.is_nominal = True

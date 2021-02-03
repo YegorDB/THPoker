@@ -211,7 +211,7 @@ class TestCombo:
     @pytest.mark.parametrize("values", with_hand_variants)
     @get_parameters
     def test_table_hand_nominal_result(self, table, hand, combo_type, cards_items, is_real, is_nominal, is_half_nominal):
-        combo = Combo(table=Table(table), hand=Hand(hand), nominal_check=True)
+        combo = Combo(table=Table(table), hand=Hand(hand), ratio_check=True)
         assert combo.type == combo_type
         assert combo.cards.items == cards_items
         assert combo.is_real == is_real

@@ -40,7 +40,7 @@ False
 True
 ```
 
-## Combo(cards_string=None, cards=None, table=None, hand=None, nominal_check=False)
+## Combo(cards_string=None, cards=None, table=None, hand=None, ratio_check=False)
 
 Cards combination.
 
@@ -145,15 +145,15 @@ False
 True
 ```
 
-### Nominal check
-> Inspect whether combo base cards inludes hand cards
+### Ratio check
+> Inspect whether combo base cards inlude hand cards
 
 ```python
 >>> from thpoker.core import Table, Hand, Combo
 
 >>> table1 = Table("7d/Ts/4d/8c/6h")
 >>> hand1 = Hand("Ad/9c")
->>> combo1 = Combo(table=table1, hand=hand1, nominal_check=True)
+>>> combo1 = Combo(table=table1, hand=hand1, ratio_check=True)
 >>> print(combo1)
 straight (T♠, 9♣, 8♣, 7♦, 6♥)
 >>> combo1.is_real
@@ -164,7 +164,7 @@ False
 
 >>> table2 = Table("Th/6c/5h/Qh/5d")
 >>> hand2 = Hand("Qd/Qs")
->>> combo2 = Combo(table=table2, hand=hand2, nominal_check=True)
+>>> combo2 = Combo(table=table2, hand=hand2, ratio_check=True)
 >>> print(combo2)
 full house (Q♥, Q♠, Q♦, 5♥, 5♦)
 >>> combo2.is_half_nominal
@@ -173,7 +173,7 @@ True
 
 >>> table3 = Table("Kd/7s/Th/Ts/Jd")
 >>> hand3 = Hand("2h/Kh")
->>> combo3 = Combo(table=table3, hand=hand3, nominal_check=True)
+>>> combo3 = Combo(table=table3, hand=hand3, ratio_check=True)
 >>> print(combo3)
 two pairs (K♦, K♥, T♥, T♠, J♦)
 >>> combo3.is_half_nominal
@@ -182,7 +182,7 @@ True
 
 >>> table4 = Table("8h/3c/8c/6d/5s")
 >>> hand4 = Hand("Qc/Jc")
->>> combo4 = Combo(table=table4, hand=hand4, nominal_check=True)
+>>> combo4 = Combo(table=table4, hand=hand4, ratio_check=True)
 >>> print(combo4)
 one pair (8♥, 8♣, Q♣, J♣, 6♦)
 >>> combo4.is_real
