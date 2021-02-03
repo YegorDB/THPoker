@@ -120,6 +120,7 @@ class Combo:
         STRAIGHT_FLUSH: "sf"
     }
 
+
     class Sequence:
         """Cards sequence."""
 
@@ -163,8 +164,10 @@ class Combo:
                     cards_in_a_row = 0
             self.max_in_a_row = max(history)
 
+
     class Repeats:
         '''Weights and suits repeats'''
+
 
         class BaseRepeats:
 
@@ -183,6 +186,7 @@ class Combo:
 
             def count(self, number):
                 return len(self.all[number])
+
 
         class WeightRepeats(BaseRepeats):
 
@@ -212,6 +216,7 @@ class Combo:
                             self.triple_two = True
                     else:
                         self.two = self.all[2][-1] # pair
+
 
         class SuitRepeats(BaseRepeats):
 
@@ -246,6 +251,7 @@ class Combo:
                         except KeyError:
                             repeats[cnt] = [card]
                         repeats.cards.append(card)
+
 
     class Cards:
         """
@@ -302,6 +308,7 @@ class Combo:
                 cards_to_add.reverse()
                 free_places = 5 - self.len()
                 self.add_cards(cards_to_add[:free_places])
+
 
     class Ratio:
         """
@@ -391,6 +398,7 @@ class Combo:
                 1: self.HALF,
                 0: self.MISS,
             }[combo_cards_in_hand]
+
 
     def __init__(self, cards_string=None, cards=None, table=None, hand=None, ratio_check=False):
         ratio_check_needed = False

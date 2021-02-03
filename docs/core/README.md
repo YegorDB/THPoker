@@ -156,10 +156,10 @@ True
 >>> combo1 = Combo(table=table1, hand=hand1, ratio_check=True)
 >>> print(combo1)
 straight (T♠, 9♣, 8♣, 7♦, 6♥)
->>> combo1.is_real
+>>> combo1.ratio.is_checked
 True
->>> combo1.is_nominal
-False
+>>> combo1.ratio.is_real
+True
 >>> # combo base cards are (T♠, 9♣, 8♣, 7♦, 6♥)
 
 >>> table2 = Table("Th/6c/5h/Qh/5d")
@@ -167,7 +167,9 @@ False
 >>> combo2 = Combo(table=table2, hand=hand2, ratio_check=True)
 >>> print(combo2)
 full house (Q♥, Q♠, Q♦, 5♥, 5♦)
->>> combo2.is_half_nominal
+>>> combo2.ratio.is_checked
+True
+>>> combo2.ratio.is_half
 True
 >>> # combo base cards are (Q♥, Q♠, Q♦) and (5♥, 5♦)
 
@@ -176,7 +178,9 @@ True
 >>> combo3 = Combo(table=table3, hand=hand3, ratio_check=True)
 >>> print(combo3)
 two pairs (K♦, K♥, T♥, T♠, J♦)
->>> combo3.is_half_nominal
+>>> combo3.ratio.is_checked
+True
+>>> combo3.ratio.is_half
 True
 >>> # combo base cards are (K♦, K♥) and (T♥, T♠)
 
@@ -185,9 +189,9 @@ True
 >>> combo4 = Combo(table=table4, hand=hand4, ratio_check=True)
 >>> print(combo4)
 one pair (8♥, 8♣, Q♣, J♣, 6♦)
->>> combo4.is_real
-False
->>> combo4.is_nominal
+>>> combo4.ratio.is_checked
+True
+>>> combo4.ratio.is_miss
 True
 >>> # combo base cards are (8♥, 8♣)
 ```
