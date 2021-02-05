@@ -172,13 +172,15 @@ class Combo:
         class BaseRepeats:
 
             def __init__(self):
-                self.cards = []
                 self.all = {}
+                self.max = 0
 
             def __getitem__(self, key):
-                return self.all[key]
+                return self.all.get(key)
 
             def __setitem__(self, key, value):
+                if key > self.max:
+                    self.max = key
                 self.all[key] = value
 
             def __contains__(self, item):
@@ -222,35 +224,37 @@ class Combo:
 
             def __init__(self):
                 super().__init__()
-                self.max_repeats = 0
                 self.five_or_more = False
                 self.flush_card = None
 
             def flush_or_not(self):
-                self.max_repeats = max(self.all) # max suit repeats
-                self.five_or_more = self.max_repeats >= 5
-                self.flush_card = self.all[self.max_repeats][0]
+                self.five_or_more = self.max >= 5
+                self.flush_card = self.all[self.max][0]
 
-        def __init__(self, cards):
+
+        def __init__(self):
             self.weight = self.WeightRepeats()
             self.suit = self.SuitRepeats()
-            self.cards = cards
-            self.get_all_repeats()
+
+        def get_all_repeats(self, cards):
+            seen_w_cards = []
+            seen_s_cards = []
+            for card in cards:
+                data = (
+                    (Card(card.weight.symbol), self.weight, seen_w_cards),
+                    (Card(card.suit.symbol), self.suit, seen_s_cards),
+                )
+                for card, repeats, seen_cards in data:
+                    if card in seen_cards:
+                        continue
+                    cnt = cards.count(card) # repeats count
+                    if (repeat := repeats[cnt]):
+                        repeat.append(card)
+                    else:
+                        repeats[cnt] = [card]
+                    seen_cards.append(card)
             self.weight.get_repeat_kind()
             self.suit.flush_or_not()
-
-        def get_all_repeats(self):
-            for card in self.cards:
-                w_card = Card(card.weight.symbol) # abstract weight card
-                s_card = Card(card.suit.symbol) # abstract suit card
-                for (card, repeats) in ((w_card, self.weight), (s_card, self.suit)):
-                    if card not in repeats.cards:
-                        cnt = self.cards.count(card) # repeats count
-                        try:
-                            repeats[cnt].append(card)
-                        except KeyError:
-                            repeats[cnt] = [card]
-                        repeats.cards.append(card)
 
 
     class Cards:
@@ -423,7 +427,7 @@ class Combo:
             raise ComboArgumentsError()
 
         self.cards = self.Cards()
-        self.repeats = None
+        self.repeats = self.Repeats()
         self.sequence = None
         self.type = None
         self.ratio = self.Ratio(self)
@@ -472,7 +476,7 @@ class Combo:
 
     def find_combo(self):
         self.init_cards.sort()
-        self.repeats = self.Repeats(cards=self.init_cards)
+        self.repeats.get_all_repeats(self.init_cards)
         if not self.repeats.suit.five_or_more:
             self.sequence = self.Sequence(cards=self.init_cards[:])
             if self.repeats.weight.four:

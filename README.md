@@ -6,7 +6,7 @@
 
 
 ## Requirements
-- Python>=3.6
+- python>=3.8
 
 
 ## Usage
