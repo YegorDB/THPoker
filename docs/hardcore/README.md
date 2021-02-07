@@ -71,7 +71,7 @@ True
 ```
 
 
-## hcards(cards_string, in_hand=0)
+## hcards(cards_string, in_hand=False)
 
 Several cards.
 
@@ -84,7 +84,7 @@ Several cards.
 >>> isinstance(cards, list)
 True
 
->>> cards = hcards("Js/Qs", in_hand=1)
+>>> cards = hcards("Js/Qs", in_hand=True)
 >>> cards
 [1114, 1124]
 >>> # hand cards are more than usual cards in a thousand
@@ -169,7 +169,7 @@ Cards combination created by table and hand. Also shows combination ratio (wheth
 ```python
 >>> from thpoker.hardcore import hcards, rhcombo
 
->>> combo1, ratio1 = rhcombo(table=hcards("7d/Js/3d/7c/7h"),  hand=hcards("7s/8s", in_hand=1))
+>>> combo1, ratio1 = rhcombo(table=hcards("7d/Js/3d/7c/7h"),  hand=hcards("7s/8s", in_hand=True))
 >>> combo1
 [8, 7, 11]
 >>> ratio1
@@ -179,7 +179,7 @@ Cards combination created by table and hand. Also shows combination ratio (wheth
 ... # 3rd combo number mean additional combo card is "jack"
 ... # ratio mean it is real combo
 
->>> combo2, ratio2 = rhcombo(table=hcards("5h/Qc/8d/Ts/5d"),  hand=hcards("Tc/Kh", in_hand=1))
+>>> combo2, ratio2 = rhcombo(table=hcards("5h/Qc/8d/Ts/5d"),  hand=hcards("Tc/Kh", in_hand=True))
 >>> combo2
 [3, 10, 5, 13]
 >>> ratio2
@@ -190,7 +190,7 @@ Cards combination created by table and hand. Also shows combination ratio (wheth
 ... # 4th combo number mean that additional combination card is "king"
 ... # ratio mean it is half nominal combo
 
->>> combo3, ratio3 = rhcombo(table=hcards("Ad/2s/3c/4c/5h"),  hand=hcards("Ts/Tc", in_hand=1))
+>>> combo3, ratio3 = rhcombo(table=hcards("Ad/2s/3c/4c/5h"),  hand=hcards("Ts/Tc", in_hand=True))
 >>> combo3
 [5, 5]
 >>> ratio3

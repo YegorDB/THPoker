@@ -43,18 +43,23 @@ class Hand(BaseCards):
         self.is_pair = False
         super().__init__(cards_string=cards_string, cards=cards, max_count=2)
         if self.items:
-            self.after_pull()
+            self._after_pull()
+
+    def clean(self):
+        super().clean()
+        self.type = ''
+        self.is_pair = False
 
     def pull(self, deck):
         super().pull(deck=deck, count=2)
-        self.after_pull()
+        self._after_pull()
 
-    def after_pull(self):
+    def _after_pull(self):
         for card in self.items:
             card.in_hand = True
-        self.typing()
+        self._typing()
 
-    def typing(self):
+    def _typing(self):
         self.items.sort()
         self.items.reverse()
         self.type = self.items[0].weight.symbol + self.items[1].weight.symbol
@@ -62,11 +67,6 @@ class Hand(BaseCards):
             self.is_pair = True
         else:
             self.type += 's' if self.items[0].suit == self.items[1].suit else 'o'
-
-    def clean(self):
-        super().clean()
-        self.type = ''
-        self.is_pair = False
 
 
 class Combo:
@@ -124,45 +124,51 @@ class Combo:
     class Sequence:
         """Cards sequence."""
 
-        def __init__(self, cards):
-            self.order_cards = None  # 5 cards sequence
-            self.five_in_a_row = False
+        FIVE_OR_MORE_IN_A_ROW = 'five_or_more_in_a_row'
+        FOUR_OR_LESS_IN_A_ROW = 'four_or_less_in_a_row'
+
+        def __init__(self):
+            self.state = self.FOUR_OR_LESS_IN_A_ROW
+            self.cards = []
+            self.order_cards = []  # 5 cards sequence
             self.max_in_a_row = 0
+
+        def find(self, cards):
             self.cards = cards
-            if Card('A') in self.cards:
-                self.one_more_ace()
-            self.find_order()
-
-        def one_more_ace(self):
-            """Add Ace wich weight is 1."""
-            ace = list(filter(lambda card: card == Card('A'), self.cards))[-1]
-            self.cards.insert(0, Card('1' + ace.suit.symbol))
-            self.cards[0].in_hand = ace.in_hand
-
-        def get_rank(self):
-            rank = [Card(w) for w in Card.Weight.symbols]  # abstract cards
-            for card in self.cards:
-                rank[card.weight.number] = card  # change abstract cards to real
-            rank.reverse()
-            return rank
-
-        def find_order(self):
+            self._add_one_more_ace()
+            rank = self._get_rank()
             base = 0
             cards_in_a_row = 0
-            history = []
-            rank = self.get_rank()
-            for i in range(14):
-                if rank[i].suit:
-                    cards_in_a_row += 1
-                    history.append(cards_in_a_row)
-                    if cards_in_a_row == 5:
-                        self.five_in_a_row = True
-                        self.order_cards = rank[base:base+5]
-                        break
-                else:
-                    base = i+1
+            for i, card in enumerate(rank):
+                if not card:
+                    base = i + 1
                     cards_in_a_row = 0
-            self.max_in_a_row = max(history)
+                    continue
+                cards_in_a_row += 1
+                if cards_in_a_row > self.max_in_a_row:
+                    self.max_in_a_row = cards_in_a_row
+                if cards_in_a_row == 5:
+                    self.order_cards = rank[base:base + 5]
+                    self.state = self.FIVE_OR_MORE_IN_A_ROW
+                    break
+
+        def _add_one_more_ace(self):
+            """Add an ace with weight 1 if an real ace is in cards."""
+
+            for card in self.cards:
+                if card == Card('A'): break
+            else:
+                return
+            new_ace = Card(f'1{card.suit.symbol}')
+            new_ace.in_hand = card.in_hand
+            self.cards.insert(0, new_ace)
+
+        def _get_rank(self):
+            rank = [None] * 14
+            for card in self.cards:
+                rank[card.weight.number] = card
+            rank.reverse()
+            return rank
 
 
     class Repeats:
@@ -213,7 +219,7 @@ class Combo:
 
             def __init__(self, repeats):
                 super().__init__(repeats)
-                self.kind = None
+                self.state = None
                 self.cards = None
 
             def find(self):
@@ -221,7 +227,7 @@ class Combo:
                 getattr(self, f'_get_{self.max}')()
 
             def _get_4(self):
-                self.kind = self.FOUR
+                self.state = self.FOUR
                 self.cards = {
                     4: self.all[4][0],
                 }
@@ -231,7 +237,7 @@ class Combo:
                 getattr(self, f'_get_3_with_{self.repeat_counts[3]}_rep_and_2_with_{self.repeat_counts.get(2, 0)}_rep')()
 
             def _get_3_with_2_rep_and_2_with_0_rep(self):
-                self.kind = self.DOUBLE_THREE
+                self.state = self.DOUBLE_THREE
                 self.cards = {
                     3: self.all[3][1],
                     2: self.all[3][0],
@@ -242,7 +248,7 @@ class Combo:
                 self._get_3_with_1_rep_and_2_with_1_rep()
 
             def _get_3_with_1_rep_and_2_with_1_rep(self):
-                self.kind = self.THREE_AND_TWO
+                self.state = self.THREE_AND_TWO
                 self.cards = {
                     3: self.all[3][0],
                     2: self.all[2][-1],
@@ -250,7 +256,7 @@ class Combo:
                 self._repeats.state = self._repeats.THREE_TWO_WEIGHT_REPEATS
 
             def _get_3_with_1_rep_and_2_with_0_rep(self):
-                self.kind = self.THREE
+                self.state = self.THREE
                 self.cards = {
                     3: self.all[3][0],
                 }
@@ -262,23 +268,23 @@ class Combo:
 
             def _get_2_with_3_rep(self):
                 self._get_2_with_2_rep()
-                self.kind = self.TRIPLE_TWO
+                self.state = self.TRIPLE_TWO
 
             def _get_2_with_2_rep(self):
-                self.kind = self.DOUBLE_TWO
+                self.state = self.DOUBLE_TWO
                 self.cards = {
                     22: self.all[2][-1],
                     21: self.all[2][-2],
                 }
 
             def _get_2_with_1_rep(self):
-                self.kind = self.TWO
+                self.state = self.TWO
                 self.cards = {
                     2: self.all[2][0],
                 }
 
             def _get_1(self):
-                self.kind = self.NO
+                self.state = self.NO
                 self._repeats.state = self._repeats.THREE_OR_LESS_WEIGHT_REPEATS
 
 
@@ -304,7 +310,7 @@ class Combo:
             self.suit = self.SuitRepeats(self)
             self.state = self.THREE_OR_LESS_WEIGHT_REPEATS
 
-        def get_all_repeats(self, cards):
+        def find(self, cards):
             for card in cards:
                 self.weight.add(Card(card.weight.symbol))
                 self.suit.add(Card(card.suit.symbol))
@@ -483,11 +489,11 @@ class Combo:
 
         self.cards = self.Cards()
         self.repeats = self.Repeats()
-        self.sequence = None
-        self.type = None
+        self.sequence = self.Sequence()
         self.ratio = self.Ratio(self)
+        self.type = None
 
-        self.find_combo()
+        self._find()
         if ratio_check_needed:
             self.ratio.check()
 
@@ -517,9 +523,9 @@ class Combo:
     def __ne__(self, other):
         return (self.type, self.cards) != (other.type, other.cards)
 
-    def find_combo(self):
+    def _find(self):
         self.init_cards.sort()
-        self.repeats.get_all_repeats(self.init_cards)
+        self.repeats.find(self.init_cards)
         getattr(self, f'_find_with_{self.repeats.state}')()
 
     def _find_with_four_weigh_repeats(self):
@@ -536,32 +542,29 @@ class Combo:
 
     def _find_with_five_or_more_suit_repeats(self):
         cards = list(filter(lambda card: card == self.repeats.suit.flush_card, self.init_cards))
-        self.sequence = self.Sequence(cards=cards)
-        if self.sequence.five_in_a_row:
-            self.get_straight_flush()
-        else:
-            self.get_flush()
+        self.sequence.find(cards)
+        getattr(self, f'_get_flush_with_{self.sequence.state}')()
 
-    def _find_with_three_or_less_weigh_repeats(self):
-        self.sequence = self.Sequence(cards=self.init_cards[:])
-        if self.sequence.five_in_a_row:
-            self.get_straight()
-        else:
-            getattr(self, f'_get_{self.repeats.weight.kind}_weigh_repeats')()
-
-    def get_straight_flush(self):
+    def _get_flush_with_five_or_more_in_a_row(self):
         self.type = self.STRAIGHT_FLUSH
         self.cards.add_cards(self.sequence.order_cards)
 
-    def get_flush(self):
+    def _get_flush_with_four_or_less_in_a_row(self):
         self.type = self.FLUSH
         cards = self.sequence.cards[-5:]
         cards.reverse()
         self.cards.add_cards(cards)
 
-    def get_straight(self):
+    def _find_with_three_or_less_weigh_repeats(self):
+        self.sequence.find(self.init_cards[:])
+        getattr(self, f'_get_combo_with_{self.sequence.state}')()
+
+    def _get_combo_with_five_or_more_in_a_row(self):
         self.type = self.STRAIGHT
         self.cards.add_cards(self.sequence.order_cards)
+
+    def _get_combo_with_four_or_less_in_a_row(self):
+        getattr(self, f'_get_{self.repeats.weight.state}_weigh_repeats')()
 
     def _get_three_weigh_repeats(self):
         self.type = self.THREE_OF_A_KIND
