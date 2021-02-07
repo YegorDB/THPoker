@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Yegor Bitensky
+# Copyright 2018-2021 Yegor Bitensky
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -86,49 +86,49 @@ class TestCombo:
     ]
 
     with_hand_variants = [
-        {'table': 'As/Ks/Qs', 'hand': 'Js/Ts', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('As/Ks/Qs/Js/Ts').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ks/Js/Ts/9s', 'hand': 'Qd/Qs', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('Ks/Qs/Js/Ts/9s').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Qs/Js/Ts/9s/8s', 'hand': 'Tc/2c', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('Qs/Js/Ts/9s/8s').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'Qh/Js/Ts/9s/7s', 'hand': '8s/7h', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('Js/Ts/9s/8s/7s').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ts/9s/8s/7s/5d', 'hand': 'Ac/6s', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('Ts/9s/8s/7s/6s').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': '9s/8s/7s/6s/5s', 'hand': '5d/7h', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('9s/8s/7s/6s/5s').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'Qc/7s/6s/4s/2h', 'hand': '8s/5s', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('8s/7s/6s/5s/4s').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ah/7s/5s/4s/3s', 'hand': '6s/2h', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('7s/6s/5s/4s/3s').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': '6s/5s/4s/3s/2s', 'hand': 'Js/Ts', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('6s/5s/4s/3s/2s').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'Ac/5s/4s/3s/2s', 'hand': 'As/6d', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('5s/4s/3s/2s/1s').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ks/Kh/Kc', 'hand': 'As/Kd', 'combo_type': Combo.FOUR_OF_A_KIND, 'cards_items': Cards('Ks/Kd/Kh/Kc/As').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Qs/Qd/Qh/Qc', 'hand': 'Ks/As', 'combo_type': Combo.FOUR_OF_A_KIND, 'cards_items': Cards('Qs/Qd/Qh/Qc/As').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'Js/Ks/Jd/Kd/Jh', 'hand': 'Kh/Jc', 'combo_type': Combo.FOUR_OF_A_KIND, 'cards_items': Cards('Js/Jd/Jc/Jh/Ks').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ts/Th/Tc/Td/Jh', 'hand': 'As/5d', 'combo_type': Combo.FOUR_OF_A_KIND, 'cards_items': Cards('Ts/Th/Tc/Td/As').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'As/Ad/Ah', 'hand': 'Kc/Kd', 'combo_type': Combo.FULL_HOUSE, 'cards_items': Cards('As/Ad/Ah/Kc/Kd').items, 'is_real': False, 'is_nominal': False, 'is_half_nominal': True},
-        {'table': 'As/Kc/Qd/Qh', 'hand': 'Kd/Qs', 'combo_type': Combo.FULL_HOUSE, 'cards_items': Cards('Qs/Qd/Qh/Kc/Kd').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Kc/Js/Jd/Kd/Jh', 'hand': 'Ks/5d', 'combo_type': Combo.FULL_HOUSE, 'cards_items': Cards('Kc/Kd/Ks/Js/Jd').items, 'is_real': False, 'is_nominal': False, 'is_half_nominal': True},
-        {'table': 'Tc/Js/Jd/Td/Ts', 'hand': '8h/8d', 'combo_type': Combo.FULL_HOUSE, 'cards_items': Cards('Tc/Td/Ts/Js/Jd').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'Js/5c/Jd/Jh/5s', 'hand': '9d/5d', 'combo_type': Combo.FULL_HOUSE, 'cards_items': Cards('Js/Jd/Jh/5c/5s').items, 'is_real': False, 'is_nominal': False, 'is_half_nominal': True},
-        {'table': 'As/Ks/9s', 'hand': 'Qs/Js', 'combo_type': Combo.FLUSH, 'cards_items': Cards('As/Ks/Qs/Js/9s').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ts/9s/5s/2s', 'hand': 'Ah/Ks', 'combo_type': Combo.FLUSH, 'cards_items': Cards('Ks/Ts/9s/5s/2s').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ts/9s/7s/5s/2s', 'hand': 'Kd/7h', 'combo_type': Combo.FLUSH, 'cards_items': Cards('Ts/9s/7s/5s/2s').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': '9s/8s/7s/5s/4s', 'hand': '3s/2s', 'combo_type': Combo.FLUSH, 'cards_items': Cards('9s/8s/7s/5s/4s').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': '7s/5s/4s/3s/2s', 'hand': 'Qh/2c', 'combo_type': Combo.FLUSH, 'cards_items': Cards('7s/5s/4s/3s/2s').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'As/Kh/Qc', 'hand': 'Jd/Th', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('As/Kh/Qc/Jd/Th').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Qc/Jd/Ts/8c', 'hand': 'Th/9s', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('Qc/Jd/Ts/9s/8c').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ts/9s/8c/7d/6s', 'hand': '5s/2h', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('Ts/9s/8c/7d/6s').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': '8c/7d/4c/3d/2h', 'hand': '6h/5s', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('8c/7d/6h/5s/4c').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': '6s/5c/4d/3c/2h', 'hand': 'Js/Jh', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('6s/5c/4d/3c/2h').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'Ac/5c/2h', 'hand': '4d/3c', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('5c/4d/3c/2h/1c').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ad/Qs/Qh', 'hand': 'Qc/7d', 'combo_type': Combo.THREE_OF_A_KIND, 'cards_items': Cards('Qs/Qh/Qc/Ad/7d').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Js/Jh/Jc/9d', 'hand': 'Kd/Qd', 'combo_type': Combo.THREE_OF_A_KIND, 'cards_items': Cards('Js/Jh/Jc/Kd/Qd').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': '7s/3s/3h/3c/2d', 'hand': '5d/4d', 'combo_type': Combo.THREE_OF_A_KIND, 'cards_items': Cards('3s/3h/3c/7s/5d').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'Ad/Kc/Kh', 'hand': 'Qh/Qd', 'combo_type': Combo.TWO_PAIRS, 'cards_items': Cards('Kc/Kh/Qh/Qd/Ad').items, 'is_real': False, 'is_nominal': False, 'is_half_nominal': True},
-        {'table': 'Kd/Jc/Tc/9d', 'hand': 'Jh/9h', 'combo_type': Combo.TWO_PAIRS, 'cards_items': Cards('Jc/Jh/9h/9d/Kd').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Tc/Ts/7s/5c/5h', 'hand': '9h/9d', 'combo_type': Combo.TWO_PAIRS, 'cards_items': Cards('Tc/Ts/9h/9d/7s').items, 'is_real': False, 'is_nominal': False, 'is_half_nominal': True},
-        {'table': '5c/5h/4h/4d/2s', 'hand': '3c/3s', 'combo_type': Combo.TWO_PAIRS, 'cards_items': Cards('5c/5h/4h/4d/3c').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'Jh/Jd/Ts', 'hand': 'Ks/Qd', 'combo_type': Combo.ONE_PAIR, 'cards_items': Cards('Jh/Jd/Ks/Qd/Ts').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'Ah/Jd/8c/6h', 'hand': 'Ts/8h', 'combo_type': Combo.ONE_PAIR, 'cards_items': Cards('8h/8c/Ah/Jd/Ts').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Kc/Qh/Jd/5c/5h', 'hand': 'Ts/6h', 'combo_type': Combo.ONE_PAIR, 'cards_items': Cards('5c/5h/Kc/Qh/Jd').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
-        {'table': 'Ks/Td/8h', 'hand': '6h/2c', 'combo_type': Combo.HIGH_CARD, 'cards_items': Cards('Ks/Td/8h/6h/2c').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ts/9h/4h/3c', 'hand': '7d/5s', 'combo_type': Combo.HIGH_CARD, 'cards_items': Cards('Ts/9h/7d/5s/4h').items, 'is_real': True, 'is_nominal': False, 'is_half_nominal': False},
-        {'table': 'Ks/Qd/9s/7h/5d', 'hand': '2h/4c', 'combo_type': Combo.HIGH_CARD, 'cards_items': Cards('Ks/Qd/9s/7h/5d').items, 'is_real': False, 'is_nominal': True, 'is_half_nominal': False},
+        {'table': 'As/Ks/Qs', 'hand': 'Js/Ts', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('As/Ks/Qs/Js/Ts').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ks/Js/Ts/9s', 'hand': 'Qd/Qs', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('Ks/Qs/Js/Ts/9s').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Qs/Js/Ts/9s/8s', 'hand': 'Tc/2c', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('Qs/Js/Ts/9s/8s').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'Qh/Js/Ts/9s/7s', 'hand': '8s/7h', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('Js/Ts/9s/8s/7s').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ts/9s/8s/7s/5d', 'hand': 'Ac/6s', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('Ts/9s/8s/7s/6s').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': '9s/8s/7s/6s/5s', 'hand': '5d/7h', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('9s/8s/7s/6s/5s').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'Qc/7s/6s/4s/2h', 'hand': '8s/5s', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('8s/7s/6s/5s/4s').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ah/7s/5s/4s/3s', 'hand': '6s/2h', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('7s/6s/5s/4s/3s').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': '6s/5s/4s/3s/2s', 'hand': 'Js/Ts', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('6s/5s/4s/3s/2s').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'Ac/5s/4s/3s/2s', 'hand': 'As/6d', 'combo_type': Combo.STRAIGHT_FLUSH, 'cards_items': Cards('5s/4s/3s/2s/1s').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ks/Kh/Kc', 'hand': 'As/Kd', 'combo_type': Combo.FOUR_OF_A_KIND, 'cards_items': Cards('Ks/Kd/Kh/Kc/As').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Qs/Qd/Qh/Qc', 'hand': 'Ks/As', 'combo_type': Combo.FOUR_OF_A_KIND, 'cards_items': Cards('Qs/Qd/Qh/Qc/As').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'Js/Ks/Jd/Kd/Jh', 'hand': 'Kh/Jc', 'combo_type': Combo.FOUR_OF_A_KIND, 'cards_items': Cards('Js/Jd/Jc/Jh/Ks').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ts/Th/Tc/Td/Jh', 'hand': 'As/5d', 'combo_type': Combo.FOUR_OF_A_KIND, 'cards_items': Cards('Ts/Th/Tc/Td/As').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'As/Ad/Ah', 'hand': 'Kc/Kd', 'combo_type': Combo.FULL_HOUSE, 'cards_items': Cards('As/Ad/Ah/Kc/Kd').items, 'ratio_value': Combo.Ratio.HALF},
+        {'table': 'As/Kc/Qd/Qh', 'hand': 'Kd/Qs', 'combo_type': Combo.FULL_HOUSE, 'cards_items': Cards('Qs/Qd/Qh/Kc/Kd').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Kc/Js/Jd/Kd/Jh', 'hand': 'Ks/5d', 'combo_type': Combo.FULL_HOUSE, 'cards_items': Cards('Kc/Kd/Ks/Js/Jd').items, 'ratio_value': Combo.Ratio.HALF},
+        {'table': 'Tc/Js/Jd/Td/Ts', 'hand': '8h/8d', 'combo_type': Combo.FULL_HOUSE, 'cards_items': Cards('Tc/Td/Ts/Js/Jd').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'Js/5c/Jd/Jh/5s', 'hand': '9d/5d', 'combo_type': Combo.FULL_HOUSE, 'cards_items': Cards('Js/Jd/Jh/5c/5s').items, 'ratio_value': Combo.Ratio.HALF},
+        {'table': 'As/Ks/9s', 'hand': 'Qs/Js', 'combo_type': Combo.FLUSH, 'cards_items': Cards('As/Ks/Qs/Js/9s').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ts/9s/5s/2s', 'hand': 'Ah/Ks', 'combo_type': Combo.FLUSH, 'cards_items': Cards('Ks/Ts/9s/5s/2s').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ts/9s/7s/5s/2s', 'hand': 'Kd/7h', 'combo_type': Combo.FLUSH, 'cards_items': Cards('Ts/9s/7s/5s/2s').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': '9s/8s/7s/5s/4s', 'hand': '3s/2s', 'combo_type': Combo.FLUSH, 'cards_items': Cards('9s/8s/7s/5s/4s').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': '7s/5s/4s/3s/2s', 'hand': 'Qh/2c', 'combo_type': Combo.FLUSH, 'cards_items': Cards('7s/5s/4s/3s/2s').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'As/Kh/Qc', 'hand': 'Jd/Th', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('As/Kh/Qc/Jd/Th').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Qc/Jd/Ts/8c', 'hand': 'Th/9s', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('Qc/Jd/Ts/9s/8c').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ts/9s/8c/7d/6s', 'hand': '5s/2h', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('Ts/9s/8c/7d/6s').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': '8c/7d/4c/3d/2h', 'hand': '6h/5s', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('8c/7d/6h/5s/4c').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': '6s/5c/4d/3c/2h', 'hand': 'Js/Jh', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('6s/5c/4d/3c/2h').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'Ac/5c/2h', 'hand': '4d/3c', 'combo_type': Combo.STRAIGHT, 'cards_items': Cards('5c/4d/3c/2h/1c').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ad/Qs/Qh', 'hand': 'Qc/7d', 'combo_type': Combo.THREE_OF_A_KIND, 'cards_items': Cards('Qs/Qh/Qc/Ad/7d').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Js/Jh/Jc/9d', 'hand': 'Kd/Qd', 'combo_type': Combo.THREE_OF_A_KIND, 'cards_items': Cards('Js/Jh/Jc/Kd/Qd').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': '7s/3s/3h/3c/2d', 'hand': '5d/4d', 'combo_type': Combo.THREE_OF_A_KIND, 'cards_items': Cards('3s/3h/3c/7s/5d').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'Ad/Kc/Kh', 'hand': 'Qh/Qd', 'combo_type': Combo.TWO_PAIRS, 'cards_items': Cards('Kc/Kh/Qh/Qd/Ad').items, 'ratio_value': Combo.Ratio.HALF},
+        {'table': 'Kd/Jc/Tc/9d', 'hand': 'Jh/9h', 'combo_type': Combo.TWO_PAIRS, 'cards_items': Cards('Jc/Jh/9h/9d/Kd').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Tc/Ts/7s/5c/5h', 'hand': '9h/9d', 'combo_type': Combo.TWO_PAIRS, 'cards_items': Cards('Tc/Ts/9h/9d/7s').items, 'ratio_value': Combo.Ratio.HALF},
+        {'table': '5c/5h/4h/4d/2s', 'hand': '3c/3s', 'combo_type': Combo.TWO_PAIRS, 'cards_items': Cards('5c/5h/4h/4d/3c').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'Jh/Jd/Ts', 'hand': 'Ks/Qd', 'combo_type': Combo.ONE_PAIR, 'cards_items': Cards('Jh/Jd/Ks/Qd/Ts').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'Ah/Jd/8c/6h', 'hand': 'Ts/8h', 'combo_type': Combo.ONE_PAIR, 'cards_items': Cards('8h/8c/Ah/Jd/Ts').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Kc/Qh/Jd/5c/5h', 'hand': 'Ts/6h', 'combo_type': Combo.ONE_PAIR, 'cards_items': Cards('5c/5h/Kc/Qh/Jd').items, 'ratio_value': Combo.Ratio.MISS},
+        {'table': 'Ks/Td/8h', 'hand': '6h/2c', 'combo_type': Combo.HIGH_CARD, 'cards_items': Cards('Ks/Td/8h/6h/2c').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ts/9h/4h/3c', 'hand': '7d/5s', 'combo_type': Combo.HIGH_CARD, 'cards_items': Cards('Ts/9h/7d/5s/4h').items, 'ratio_value': Combo.Ratio.REAL},
+        {'table': 'Ks/Qd/9s/7h/5d', 'hand': '2h/4c', 'combo_type': Combo.HIGH_CARD, 'cards_items': Cards('Ks/Qd/9s/7h/5d').items, 'ratio_value': Combo.Ratio.MISS},
     ]
 
     equal_values = [
@@ -200,6 +200,7 @@ class TestCombo:
         combo = Combo(cards_string=init_cards)
         assert combo.type == combo_type
         assert combo.cards.items == cards_items
+        assert not combo.ratio.is_checked
 
     @pytest.mark.parametrize("values", combo_variants)
     @get_parameters
@@ -207,16 +208,16 @@ class TestCombo:
         combo = Combo(cards=Cards(init_cards))
         assert combo.type == combo_type
         assert combo.cards.items == cards_items
+        assert not combo.ratio.is_checked
 
     @pytest.mark.parametrize("values", with_hand_variants)
     @get_parameters
-    def test_table_hand_nominal_result(self, table, hand, combo_type, cards_items, is_real, is_nominal, is_half_nominal):
-        combo = Combo(table=Table(table), hand=Hand(hand), nominal_check=True)
+    def test_table_hand_nominal_result(self, table, hand, combo_type, cards_items, ratio_value):
+        combo = Combo(table=Table(table), hand=Hand(hand), ratio_check=True)
         assert combo.type == combo_type
         assert combo.cards.items == cards_items
-        assert combo.is_real == is_real
-        assert combo.is_nominal == is_nominal
-        assert combo.is_half_nominal == is_half_nominal
+        assert combo.ratio._value == ratio_value
+        assert combo.ratio.is_checked
 
     @pytest.mark.parametrize("values", equal_values)
     @get_parameters

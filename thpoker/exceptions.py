@@ -27,7 +27,7 @@ class ComboArgumentsError(Exception):
                 'cards_string': Combo(cards_string='As/Ks/Qs/Js/Ts');
                 'cards': Combo(cards=Cards('As/Ks/Qs/Js/Ts'));
                 'table' and 'hand': Combo(table=Table('As/Ks/Qs'), hand=Hand('Js/Ts'));
-                'table' and 'hand' and 'nominal_check_needed':
-                    Combo(table=Table('As/Ks/Qs'), hand=Hand('Js/Ts'), nominal_check_needed=True).
+                'table' and 'hand' and 'ratio_check_needed':
+                    Combo(table=Table('As/Ks/Qs'), hand=Hand('Js/Ts'), ratio_check_needed=True).
             """
         )

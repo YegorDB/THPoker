@@ -1,4 +1,4 @@
-# Copyright 2018 Yegor Bitensky
+# Copyright 2018-2021 Yegor Bitensky
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,7 +30,8 @@ def hdeck():
     return [hcard(w + s) for w in all_weights for s in all_suits]
 
 
-def hcards(cards_string, in_hand=0):
+def hcards(cards_string, in_hand=False):
+    in_hand = int(in_hand)
     return [1000 * in_hand + hcard(sign) for sign in cards_string.split('/')]
 
 

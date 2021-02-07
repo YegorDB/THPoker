@@ -122,4 +122,4 @@ class TestHardCombo:
     @pytest.mark.parametrize("values", with_hand_variants)
     @get_parameters
     def test_hard_hand_combo(self, table, hand, kind):
-        assert rhcombo(hcards(table), hcards(hand, 1))[1] == kind
+        assert rhcombo(hcards(table), hcards(hand, True))[1] == kind

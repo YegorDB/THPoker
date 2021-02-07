@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Yegor Bitensky
+# Copyright 2018-2021 Yegor Bitensky
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='THPoker',
-    version='1.1.0',
+    version='2.0.0',
     description="Texas Hold'em Poker tool",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -36,12 +36,12 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3 :: Only",
     ],
     keywords='poker cards',
     packages=find_packages(exclude=['tests*', 'examples*']),
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     install_requires=['CTHPoker', 'AGStuff'],
 )

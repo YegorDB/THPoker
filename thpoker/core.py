@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Yegor Bitensky
+# Copyright 2018-2021 Yegor Bitensky
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,18 +43,23 @@ class Hand(BaseCards):
         self.is_pair = False
         super().__init__(cards_string=cards_string, cards=cards, max_count=2)
         if self.items:
-            self.after_pull()
+            self._after_pull()
+
+    def clean(self):
+        super().clean()
+        self.type = ''
+        self.is_pair = False
 
     def pull(self, deck):
         super().pull(deck=deck, count=2)
-        self.after_pull()
+        self._after_pull()
 
-    def after_pull(self):
+    def _after_pull(self):
         for card in self.items:
             card.in_hand = True
-        self.typing()
+        self._typing()
 
-    def typing(self):
+    def _typing(self):
         self.items.sort()
         self.items.reverse()
         self.type = self.items[0].weight.symbol + self.items[1].weight.symbol
@@ -63,11 +68,6 @@ class Hand(BaseCards):
         else:
             self.type += 's' if self.items[0].suit == self.items[1].suit else 'o'
 
-    def clean(self):
-        super().clean()
-        self.type = ''
-        self.is_pair = False
-
 
 class Combo:
     '''
@@ -75,7 +75,7 @@ class Combo:
 
     One of high card, one pair, two pairs, three of a kind, straight, flush, full house, four of a kind, straight flush.
 
-    Takes arguments (cards_string, cards, table, hand, nominal_check)
+    Takes arguments (cards_string, cards, table, hand, ratio_check)
     For example:
         Combo(cards_string='6s/Jc/Ah/9h/3d/Jd') or Combo('6s/Jc/Ah/9h/3d/Jd')
     or
@@ -83,12 +83,8 @@ class Combo:
     or
         Combo(table=Table('6s/Jc/Ah/9h'), hand=Hand('3d/Jd'))
     or
-        Combo(table=Table('6s/Jc/Ah/9h'), hand=Hand('3d/Jd'), nominal_check=True)
+        Combo(table=Table('6s/Jc/Ah/9h'), hand=Hand('3d/Jd'), ratio_check=True)
     '''
-
-    is_real = False          # hand is complete involved in combination
-    is_nominal = False       # hand is not involved in combination
-    is_half_nominal = False  # hand is involved in a part of combination
 
     HIGH_CARD = 1
     ONE_PAIR = 2
@@ -124,132 +120,203 @@ class Combo:
         STRAIGHT_FLUSH: "sf"
     }
 
+
     class Sequence:
         """Cards sequence."""
 
-        def __init__(self, cards):
-            self.order_cards = None  # 5 cards sequence
-            self.five_in_a_row = False
+        FIVE_OR_MORE_IN_A_ROW = 'five_or_more_in_a_row'
+        FOUR_OR_LESS_IN_A_ROW = 'four_or_less_in_a_row'
+
+        def __init__(self):
+            self.state = self.FOUR_OR_LESS_IN_A_ROW
+            self.cards = []
+            self.order_cards = []  # 5 cards sequence
             self.max_in_a_row = 0
+
+        def find(self, cards):
             self.cards = cards
-            if Card('A') in self.cards:
-                self.one_more_ace()
-            self.find_order()
+            self._add_one_more_ace()
+            rank = self._get_rank()
+            base = 0
+            cards_in_a_row = 0
+            for i, card in enumerate(rank):
+                if not card:
+                    base = i + 1
+                    cards_in_a_row = 0
+                    continue
+                cards_in_a_row += 1
+                if cards_in_a_row > self.max_in_a_row:
+                    self.max_in_a_row = cards_in_a_row
+                if cards_in_a_row == 5:
+                    self.order_cards = rank[base:base + 5]
+                    self.state = self.FIVE_OR_MORE_IN_A_ROW
+                    break
 
-        def one_more_ace(self):
-            """Add Ace wich weight is 1."""
-            ace = list(filter(lambda card: card == Card('A'), self.cards))[-1]
-            self.cards.insert(0, Card('1' + ace.suit.symbol))
-            self.cards[0].in_hand = ace.in_hand
+        def _add_one_more_ace(self):
+            """Add an ace with weight 1 if an real ace is in cards."""
 
-        def get_rank(self):
-            rank = [Card(w) for w in Card.Weight.symbols]  # abstract cards
             for card in self.cards:
-                rank[card.weight.number] = card  # change abstract cards to real
+                if card == Card('A'): break
+            else:
+                return
+            new_ace = Card(f'1{card.suit.symbol}')
+            new_ace.in_hand = card.in_hand
+            self.cards.insert(0, new_ace)
+
+        def _get_rank(self):
+            rank = [None] * 14
+            for card in self.cards:
+                rank[card.weight.number] = card
             rank.reverse()
             return rank
 
-        def find_order(self):
-            base = 0
-            cards_in_a_row = 0
-            history = []
-            rank = self.get_rank()
-            for i in range(14):
-                if rank[i].suit:
-                    cards_in_a_row += 1
-                    history.append(cards_in_a_row)
-                    if cards_in_a_row == 5:
-                        self.five_in_a_row = True
-                        self.order_cards = rank[base:base+5]
-                        break
-                else:
-                    base = i+1
-                    cards_in_a_row = 0
-            self.max_in_a_row = max(history)
 
     class Repeats:
         '''Weights and suits repeats'''
 
+        FOUR_WEIGHT_REPEATS = 'four_weigh_repeats'
+        THREE_TWO_WEIGHT_REPEATS = 'three_two_weigh_repeats'
+        FIVE_OR_MORE_SUIT_REPEATS = 'five_or_more_suit_repeats'
+        THREE_OR_LESS_WEIGHT_REPEATS = 'three_or_less_weigh_repeats'
+
         class BaseRepeats:
 
-            def __init__(self):
-                self.cards = []
+            def __init__(self, repeats):
+                self._repeats = repeats
+                self.card_counts = {}
+                self.included_cards = []
+                self.repeat_counts = {}
                 self.all = {}
+                self.max = 0
 
-            def __getitem__(self, key):
-                return self.all[key]
+            def add(self, card):
+                self.card_counts[card] = self.card_counts.get(card, 0) + 1
+                if self.card_counts[card] == 1:
+                    self.included_cards.append(card)
 
-            def __setitem__(self, key, value):
-                self.all[key] = value
+            def find(self):
+                for card in self.included_cards:
+                    count = self.card_counts[card]
+                    if (repeat := self.all.get(count)):
+                        repeat.append(card)
+                    else:
+                        self.all[count] = [card]
+                    if count > self.max:
+                        self.max = count
+                    self.repeat_counts[count] = self.repeat_counts.get(count, 0) + 1
 
-            def __contains__(self, item):
-                return item in self.all
-
-            def count(self, number):
-                return len(self.all[number])
 
         class WeightRepeats(BaseRepeats):
 
-            def __init__(self):
-                super().__init__()
-                self.four = None
-                self.three = None
-                self.double_three = False
-                self.two = None
-                self.double_two = None
-                self.triple_two = False
+            FOUR = 'four'
+            DOUBLE_THREE = 'double_three'
+            THREE_AND_TWO = 'three_and_two'
+            THREE = 'three'
+            TRIPLE_TWO = 'triple_two'
+            DOUBLE_TWO = 'double_two'
+            TWO = 'two'
+            NO = 'no'
 
-            def get_repeat_kind(self):
-                if 4 in self.all:
-                    self.four = self.all[4][0] # four of a kind
-                elif 3 in self.all:
-                    self.three = self.all[3][-1] # three of a kind
-                    if 2 in self.all:
-                        self.two = self.all[2][-1] # full house
-                    if self.count(3) == 2:
-                        self.two = self.all[3][-2] # full house
-                        self.double_three = True
-                elif 2 in self.all:
-                    if self.count(2) > 1:
-                        self.double_two = self.all[2][-2:] # two pairs
-                        if self.count(2) == 3:
-                            self.triple_two = True
-                    else:
-                        self.two = self.all[2][-1] # pair
+            def __init__(self, repeats):
+                super().__init__(repeats)
+                self.state = None
+                self.cards = None
+
+            def find(self):
+                super().find()
+                getattr(self, f'_get_{self.max}')()
+
+            def _get_4(self):
+                self.state = self.FOUR
+                self.cards = {
+                    4: self.all[4][0],
+                }
+                self._repeats.state = self._repeats.FOUR_WEIGHT_REPEATS
+
+            def _get_3(self):
+                getattr(self, f'_get_3_with_{self.repeat_counts[3]}_rep_and_2_with_{self.repeat_counts.get(2, 0)}_rep')()
+
+            def _get_3_with_2_rep_and_2_with_0_rep(self):
+                self.state = self.DOUBLE_THREE
+                self.cards = {
+                    3: self.all[3][1],
+                    2: self.all[3][0],
+                }
+                self._repeats.state = self._repeats.THREE_TWO_WEIGHT_REPEATS
+
+            def _get_3_with_1_rep_and_2_with_2_rep(self):
+                self._get_3_with_1_rep_and_2_with_1_rep()
+
+            def _get_3_with_1_rep_and_2_with_1_rep(self):
+                self.state = self.THREE_AND_TWO
+                self.cards = {
+                    3: self.all[3][0],
+                    2: self.all[2][-1],
+                }
+                self._repeats.state = self._repeats.THREE_TWO_WEIGHT_REPEATS
+
+            def _get_3_with_1_rep_and_2_with_0_rep(self):
+                self.state = self.THREE
+                self.cards = {
+                    3: self.all[3][0],
+                }
+                self._repeats.state = self._repeats.THREE_OR_LESS_WEIGHT_REPEATS
+
+            def _get_2(self):
+                getattr(self, f'_get_2_with_{self.repeat_counts[2]}_rep')()
+                self._repeats.state = self._repeats.THREE_OR_LESS_WEIGHT_REPEATS
+
+            def _get_2_with_3_rep(self):
+                self._get_2_with_2_rep()
+                self.state = self.TRIPLE_TWO
+
+            def _get_2_with_2_rep(self):
+                self.state = self.DOUBLE_TWO
+                self.cards = {
+                    22: self.all[2][-1],
+                    21: self.all[2][-2],
+                }
+
+            def _get_2_with_1_rep(self):
+                self.state = self.TWO
+                self.cards = {
+                    2: self.all[2][0],
+                }
+
+            def _get_1(self):
+                self.state = self.NO
+                self._repeats.state = self._repeats.THREE_OR_LESS_WEIGHT_REPEATS
+
 
         class SuitRepeats(BaseRepeats):
 
-            def __init__(self):
-                super().__init__()
-                self.max_repeats = 0
+            def __init__(self, repeats):
+                super().__init__(repeats)
                 self.five_or_more = False
                 self.flush_card = None
 
-            def flush_or_not(self):
-                self.max_repeats = max(self.all) # max suit repeats
-                self.five_or_more = self.max_repeats >= 5
-                self.flush_card = self.all[self.max_repeats][0]
+            def find(self):
+                super().find()
+                if (five_or_more := self.max >= 5):
+                    self.flush_card = self.all[self.max][0]
+                    self._repeats.state = self._repeats.FIVE_OR_MORE_SUIT_REPEATS
+                else:
+                    self.flush_card = None
+                self.five_or_more = five_or_more
 
-        def __init__(self, cards):
-            self.weight = self.WeightRepeats()
-            self.suit = self.SuitRepeats()
-            self.cards = cards
-            self.get_all_repeats()
-            self.weight.get_repeat_kind()
-            self.suit.flush_or_not()
 
-        def get_all_repeats(self):
-            for card in self.cards:
-                w_card = Card(card.weight.symbol) # abstract weight card
-                s_card = Card(card.suit.symbol) # abstract suit card
-                for (card, repeats) in ((w_card, self.weight), (s_card, self.suit)):
-                    if card not in repeats.cards:
-                        cnt = self.cards.count(card) # repeats count
-                        try:
-                            repeats[cnt].append(card)
-                        except KeyError:
-                            repeats[cnt] = [card]
-                        repeats.cards.append(card)
+        def __init__(self):
+            self.weight = self.WeightRepeats(self)
+            self.suit = self.SuitRepeats(self)
+            self.state = self.THREE_OR_LESS_WEIGHT_REPEATS
+
+        def find(self, cards):
+            for card in cards:
+                self.weight.add(Card(card.weight.symbol))
+                self.suit.add(Card(card.suit.symbol))
+            self.weight.find()
+            self.suit.find()
+
 
     class Cards:
         """
@@ -261,29 +328,22 @@ class Combo:
             self.items = []
 
         def __str__(self):
-            return str(self.items)
+            return f"({', '.join(self.items)})"
 
         def __repr__(self):
             return str(self.items)
 
-        def compare(self, other, condition, even):  # compare template
-            for card1, card2 in zip(self.items, other.items):
-                if card1 != card2:
-                    return eval('card1 ' + condition + ' card2', {'card1': card1, 'card2': card2})
-            else:
-                return even
-
         def __lt__(self, other):
-            return self.compare(other, '<', False)
+            return self._compare(other, '__lt__', False)
 
         def __gt__(self, other):
-            return self.compare(other, '>', False)
+            return self._compare(other, '__gt__', False)
 
         def __eq__(self, other):
-            return self.compare(other, '==', True)
+            return self._compare(other, '__eq__', True)
 
         def __ne__(self, other):
-            return self.compare(other, '!=', False)
+            return self._compare(other, '__ne__', False)
 
         def __getitem__(self, key):
             return self.items[key]
@@ -291,25 +351,122 @@ class Combo:
         def __contains__(self, item):
             return item in self.items
 
-        def len(self):
+        def __len__(self):
             return len(self.items)
+
+        def _compare(self, other, method, even):
+            for card1, card2 in zip(self.items, other.items):
+                if card1 != card2:
+                    return getattr(card1, method)(card2)
+            else:
+                return even
 
         def add_card(self, card):
             self.items.append(card)
 
         def add_cards(self, cards):
-            self.items += cards
+            self.items.extend(cards)
 
         def get_other_cards(self, all_cards):  # add cards to main combination
             cards_to_add = list(filter(lambda card: card not in self, all_cards))
-            if cards_to_add:
-                cards_to_add.reverse()
-                free_places = 5 - self.len()
-                self.add_cards(cards_to_add[:free_places])
+            if not cards_to_add: return
+            cards_to_add.reverse()
+            free_places = 5 - len(self)
+            self.add_cards(cards_to_add[:free_places])
 
-    def __init__(self, cards_string=None, cards=None, table=None, hand=None, nominal_check=False):
-        self.cards = self.Cards()
-        nominal_check_needed = False
+
+    class Ratio:
+        """
+        Combination ratio.
+        Shows whether combination base cards inlude hand cards or not.
+        """
+
+        REAL = "real" # combo base cards inlude hand cards
+        HALF = "half" # half combo base cards inlude hand cards
+        MISS = "miss" # combo base cards don't inlude hand cards
+
+        def __init__(self, combo):
+            self._combo = combo
+            self._value = None
+
+        @property
+        def is_real(self):
+            return self._value == self.REAL
+
+        @property
+        def is_half(self):
+            return self._value == self.HALF
+
+        @property
+        def is_miss(self):
+            return self._value == self.MISS
+
+        @property
+        def is_checked(self):
+            return not self._value is None
+
+        def check(self):
+            suffix = Combo.SHORT_TYPE_NAMES[self._combo.type]
+            getattr(self, f'_check_{suffix}')()
+
+        def _check_hc(self):
+            self._check_all_cards()
+
+        def _check_op(self):
+            self._find(self._combo.cards[:2])
+
+        def _check_tp(self):
+            pair1 = self._combo.cards[:2]
+            pair2 = self._combo.cards[2:4]
+            self._find_with_half((pair1, pair2))
+
+        def _check_tk(self):
+            self._find(self._combo.cards[:3])
+
+        def _check_st(self):
+            self._check_all_cards()
+
+        def _check_fl(self):
+            self._check_all_cards()
+
+        def _check_fh(self):
+            three = list(filter(lambda c: c == self._combo.repeats.weight.cards[3], self._combo.init_cards))
+            two = list(filter(lambda c: c == self._combo.repeats.weight.cards[2], self._combo.init_cards))
+            self._find_with_half((three, two))
+
+        def _check_fk(self):
+            self._find(self._combo.cards[:4])
+
+        def _check_sf(self):
+            self._check_all_cards()
+
+        def _check_all_cards(self):
+            self._find(self._combo.cards[:])
+
+        def _find(self, cards):
+            for card in cards:
+                if card.in_hand:
+                    self._value = self.REAL
+                    break
+            else:
+                self._value = self.MISS
+
+        def _find_with_half(self, cards_set):
+            combo_cards_in_hand = 0
+            for cards in cards_set:
+                for card in cards:
+                    if card.in_hand:
+                        combo_cards_in_hand += 1
+                        break
+            self._value = {
+                2: self.REAL,
+                1: self.HALF,
+                0: self.MISS,
+            }[combo_cards_in_hand]
+
+
+    def __init__(self, cards_string=None, cards=None, table=None, hand=None, ratio_check=False):
+        ratio_check_needed = False
         if cards_string:
             self.init_cards = Cards(cards_string).items
         elif cards:
@@ -325,17 +482,20 @@ class Combo:
             if not hand_type is Hand:
                 raise ComboCardsTypeError(hand_type, Hand, 'hand')
             self.init_cards = table.items + hand.items
-            if nominal_check:
-                nominal_check_needed = True
+            if ratio_check:
+                ratio_check_needed = True
         else:
             raise ComboArgumentsError()
 
-        self.repeats = None
-        self.sequence = None
+        self.cards = self.Cards()
+        self.repeats = self.Repeats()
+        self.sequence = self.Sequence()
+        self.ratio = self.Ratio(self)
         self.type = None
-        self.find_combo()
-        if nominal_check_needed:
-            self.check_nominal_combo()
+
+        self._find()
+        if ratio_check_needed:
+            self.ratio.check()
 
     @property
     def name(self):
@@ -346,7 +506,7 @@ class Combo:
         return self.SHORT_TYPE_NAMES[self.type]
 
     def __str__(self):
-        return  f"{self.name} ({str(self.cards)[1:-1]})"
+        return  f"{self.name} {self.cards}"
 
     def __repr__(self):
         return str([self.type] + self.cards.items)
@@ -363,118 +523,73 @@ class Combo:
     def __ne__(self, other):
         return (self.type, self.cards) != (other.type, other.cards)
 
-    def find_combo(self):
+    def _find(self):
         self.init_cards.sort()
-        self.repeats = self.Repeats(cards=self.init_cards)
-        if not self.repeats.suit.five_or_more:
-            self.sequence = self.Sequence(cards=self.init_cards[:])
-            if self.repeats.weight.four:
-                self.get_four_of_a_kind()
-            elif self.repeats.weight.three and self.repeats.weight.two:
-                self.get_full_house()
-            elif self.sequence.five_in_a_row:
-                self.get_straight()
-            elif self.repeats.weight.three:
-                self.get_three_of_a_kind()
-            elif self.repeats.weight.double_two:
-                self.get_two_pairs()
-            elif self.repeats.weight.two:
-                self.get_one_pair()
-            else:
-                self.get_high_card()
-        else:
-            cards = list(filter(lambda card: card == self.repeats.suit.flush_card, self.init_cards))
-            self.sequence = self.Sequence(cards=cards)
-            if self.sequence.five_in_a_row:
-                self.get_straight_flush()
-            else:
-                self.get_flush()
+        self.repeats.find(self.init_cards)
+        getattr(self, f'_find_with_{self.repeats.state}')()
 
-    def get_straight_flush(self):
-        self.type = self.STRAIGHT_FLUSH
-        self.cards.add_cards(self.sequence.order_cards)
-
-    def get_four_of_a_kind(self):
+    def _find_with_four_weigh_repeats(self):
         self.type = self.FOUR_OF_A_KIND
-        four = list(filter(lambda card: card == self.repeats.weight.four, self.init_cards))
+        four = list(filter(lambda card: card == self.repeats.weight.cards[4], self.init_cards))
         self.cards.add_cards(four)
         self.cards.get_other_cards(self.init_cards)
 
-    def get_full_house(self):
+    def _find_with_three_two_weigh_repeats(self):
         self.type = self.FULL_HOUSE
-        the_set = list(filter(lambda card: card == self.repeats.weight.three, self.init_cards))
-        pair = list(filter(lambda card: card == self.repeats.weight.two, self.init_cards))[:2]
+        the_set = list(filter(lambda card: card == self.repeats.weight.cards[3], self.init_cards))
+        pair = list(filter(lambda card: card == self.repeats.weight.cards[2], self.init_cards))[:2]
         self.cards.add_cards(the_set + pair)
 
-    def get_flush(self):
+    def _find_with_five_or_more_suit_repeats(self):
+        cards = list(filter(lambda card: card == self.repeats.suit.flush_card, self.init_cards))
+        self.sequence.find(cards)
+        getattr(self, f'_get_flush_with_{self.sequence.state}')()
+
+    def _get_flush_with_five_or_more_in_a_row(self):
+        self.type = self.STRAIGHT_FLUSH
+        self.cards.add_cards(self.sequence.order_cards)
+
+    def _get_flush_with_four_or_less_in_a_row(self):
         self.type = self.FLUSH
         cards = self.sequence.cards[-5:]
         cards.reverse()
         self.cards.add_cards(cards)
 
-    def get_straight(self):
+    def _find_with_three_or_less_weigh_repeats(self):
+        self.sequence.find(self.init_cards[:])
+        getattr(self, f'_get_combo_with_{self.sequence.state}')()
+
+    def _get_combo_with_five_or_more_in_a_row(self):
         self.type = self.STRAIGHT
         self.cards.add_cards(self.sequence.order_cards)
 
-    def get_three_of_a_kind(self):
+    def _get_combo_with_four_or_less_in_a_row(self):
+        getattr(self, f'_get_{self.repeats.weight.state}_weigh_repeats')()
+
+    def _get_three_weigh_repeats(self):
         self.type = self.THREE_OF_A_KIND
-        three = list(filter(lambda card: card == self.repeats.weight.three, self.init_cards))
+        three = list(filter(lambda card: card == self.repeats.weight.cards[3], self.init_cards))
         self.cards.add_cards(three)
         self.cards.get_other_cards(self.init_cards)
 
-    def get_two_pairs(self):
+    def _get_triple_two_weigh_repeats(self):
+        self._get_double_two_weigh_repeats()
+
+    def _get_double_two_weigh_repeats(self):
         self.type = self.TWO_PAIRS
-        pairs = list(filter(lambda card: card in self.repeats.weight.double_two, self.init_cards))
-        self.cards.add_cards(pairs[2:]+pairs[:2])
+        high_pair = list(filter(lambda card: card == self.repeats.weight.cards[22], self.init_cards))
+        low_pair = list(filter(lambda card: card == self.repeats.weight.cards[21], self.init_cards))
+        self.cards.add_cards(high_pair + low_pair)
         self.cards.get_other_cards(self.init_cards)
 
-    def get_one_pair(self):
+    def _get_two_weigh_repeats(self):
         self.type = self.ONE_PAIR
-        pair = list(filter(lambda card: card == self.repeats.weight.two, self.init_cards))
+        pair = list(filter(lambda card: card == self.repeats.weight.cards[2], self.init_cards))
         self.cards.add_cards(pair)
         self.cards.get_other_cards(self.init_cards)
 
-    def get_high_card(self):
+    def _get_no_weigh_repeats(self):
         self.type = self.HIGH_CARD
         top_five_cards = self.init_cards[-5:]
         top_five_cards.reverse()
         self.cards.add_cards(top_five_cards)
-
-    def check_nominal_combo(self):
-        if self.type == self.FULL_HOUSE:
-            three = list(filter(lambda card: card == self.repeats.weight.three, self.init_cards))
-            two = list(filter(lambda card: card == self.repeats.weight.two, self.init_cards))
-            self.half_nominal_finder(card_set=(three, two))
-        elif self.type == self.TWO_PAIRS:
-            pair1 = self.cards[:2]
-            pair2 = self.cards[2:4]
-            self.half_nominal_finder(card_set=(pair1, pair2))
-        else:
-            if self.type == self.FOUR_OF_A_KIND:
-                cards = self.cards[:4]
-            elif self.type == self.THREE_OF_A_KIND:
-                cards = self.cards[:3]
-            elif self.type == self.ONE_PAIR:
-                cards = self.cards[:2]
-            else:
-                cards = self.cards[:]
-            for card in cards:
-                if card.in_hand:
-                    self.is_real = True
-                    break
-            else:
-                self.is_nominal = True
-
-    def half_nominal_finder(self, card_set):
-        combo_cards_in_hand = 0
-        for cards in card_set:
-            for card in cards:
-                if card.in_hand:
-                    combo_cards_in_hand += 1
-                    break
-        if combo_cards_in_hand == 2:
-            self.is_real = True
-        elif combo_cards_in_hand == 1:
-            self.is_half_nominal = True
-        else:
-            self.is_nominal = True
