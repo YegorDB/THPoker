@@ -328,10 +328,10 @@ class Combo:
             self.items = []
 
         def __str__(self):
-            return f"({', '.join(self.items)})"
+            return f"({', '.join(map(str, self.items))})"
 
         def __repr__(self):
-            return str(self.items)
+            return repr(self.items)
 
         def __lt__(self, other):
             return self._compare(other, '__lt__', False)
@@ -509,7 +509,7 @@ class Combo:
         return  f"{self.name} {self.cards}"
 
     def __repr__(self):
-        return str([self.type] + self.cards.items)
+        return repr([self.type] + self.cards.items)
 
     def __lt__(self, other):
         return (self.type, self.cards) < (other.type, other.cards)
