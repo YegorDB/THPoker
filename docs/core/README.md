@@ -146,7 +146,7 @@ True
 ```
 
 ### Ratio check
-> Inspect whether combo base cards inlude hand cards
+> Inspect whether combo base cards include hand cards
 
 ```python
 >>> from thpoker.core import Table, Hand, Combo

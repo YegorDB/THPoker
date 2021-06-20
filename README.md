@@ -41,4 +41,4 @@ True
 
 
 ## Documentation
-[Explore](https://github.com/YegorDB/THPoker/docs)
+[Explore](https://github.com/YegorDB/THPoker/tree/master/docs)
